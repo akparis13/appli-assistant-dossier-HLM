@@ -1,0 +1,2601 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Clé de dossier — Assistant logement social</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style>
+:root{
+  --navy:#16243F; --navy-2:#20335A; --navy-3:#0F1A30;
+  --paper:#F6F4EE; --paper-2:#FFFFFF; --ink:#1A1E27; --ink-soft:#5B6270;
+  --ochre:#B9812B; --ochre-ink:#7A551A;
+  --teal:#2F7A6B; --teal-bg:#E4F0EC;
+  --clay:#B4472E; --clay-bg:#F7E7E2;
+  --line:#DDD8CB; --line-soft:#EAE7DE;
+  --radius:10px;
+  box-sizing:border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+:root:not([data-theme="light"]){
+  @media (prefers-color-scheme: dark){
+    --navy:#0F1A30; --navy-2:#1B2C4C; --navy-3:#0A1220;
+    --paper:#14181F; --paper-2:#1C212B; --ink:#EAE8E2; --ink-soft:#A9ADB6;
+    --line:#2A2F3A; --line-soft:#232833;
+    --teal-bg:#16332C; --clay-bg:#3A2019;
+  }
+}
+:root[data-theme="dark"]{
+  --navy:#0F1A30; --navy-2:#1B2C4C; --navy-3:#0A1220;
+  --paper:#14181F; --paper-2:#1C212B; --ink:#EAE8E2; --ink-soft:#A9ADB6;
+  --line:#2A2F3A; --line-soft:#232833;
+  --teal-bg:#16332C; --clay-bg:#3A2019;
+}
+html{scroll-padding-top: env(safe-area-inset-top, 0px);}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:'Public Sans', system-ui, -apple-system, sans-serif;
+  font-size:15px; line-height:1.55;
+}
+h1,h2,h3,h4{font-family:'Source Serif 4', Georgia, serif; font-weight:600; margin:0 0 .4em; line-height:1.2;}
+p{margin:.3em 0 .8em;}
+a{color:var(--navy-2);}
+:root[data-theme="dark"] a, :root:not([data-theme="light"]) a { color:#8CA9E0; }
+button{font-family:inherit; cursor:pointer;}
+::selection{background:var(--ochre); color:#fff;}
+:focus-visible{outline:2px solid var(--ochre); outline-offset:2px;}
+
+/* ---- App shell ---- */
+#app{display:flex; min-height:100vh;}
+.sidebar{
+  width:250px; flex:0 0 250px; background:var(--navy); color:#EDEEF3;
+  padding:20px 14px calc(20px + env(safe-area-inset-bottom,0px));
+  position:sticky; top:0; align-self:flex-start; height:100vh; overflow-y:auto;
+  padding-top: calc(20px + env(safe-area-inset-top,0px));
+}
+.brand{display:flex; align-items:center; gap:10px; padding:4px 8px 18px; border-bottom:1px solid rgba(255,255,255,.12); margin-bottom:14px;}
+.brand-mark{width:34px; height:34px; border-radius:8px; background:var(--ochre); display:flex; align-items:center; justify-content:center; font-size:18px; flex:0 0 auto;}
+.brand-name{font-family:'Source Serif 4',serif; font-size:16.5px; font-weight:600; color:#fff;}
+.brand-sub{font-size:11.5px; color:#B7BFD1;}
+nav.steps{display:flex; flex-direction:column; gap:3px;}
+.step-btn{
+  display:flex; align-items:flex-start; gap:10px; text-align:left; width:100%;
+  background:transparent; border:none; color:#D6DAE6; padding:10px 10px; border-radius:8px;
+  font-size:13.6px;
+}
+.step-btn .num{
+  flex:0 0 22px; height:22px; width:22px; border-radius:50%; background:rgba(255,255,255,.1);
+  display:flex; align-items:center; justify-content:center; font-size:11.5px; font-weight:600;
+  color:#C6CCDD; margin-top:1px;
+}
+.step-btn .label{font-weight:600; color:#F0F1F5;}
+.step-btn .sub{display:block; font-weight:400; color:#9AA2B8; font-size:11.8px; margin-top:1px;}
+.step-btn:hover{background:rgba(255,255,255,.06);}
+.step-btn.active{background:var(--navy-2);}
+.step-btn.active .num{background:var(--ochre); color:#fff;}
+.sidebar-foot{margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,.12); font-size:11.5px; color:#98A0B4;}
+.sidebar-foot b{color:#D6DAE6;}
+.sidebar-toolbar{margin-bottom:6px;}
+
+main{flex:1; min-width:0; padding:28px 32px calc(60px + env(safe-area-inset-bottom,0px)); max-width:920px;}
+.eyebrow-row{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px;}
+.view-title{font-size:26px;}
+.view-lede{color:var(--ink-soft); max-width:64ch; margin-bottom:22px;}
+
+/* ---- Cards / building blocks ---- */
+.card{background:var(--paper-2); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; margin-bottom:16px;}
+.card h3{font-size:16.5px;}
+.field{margin-bottom:16px;}
+.field > label{display:block; font-weight:600; font-size:13.6px; margin-bottom:8px;}
+.field .hint{font-weight:400; color:var(--ink-soft); font-size:12.3px; margin-top:4px;}
+.choices{display:flex; flex-wrap:wrap; gap:8px;}
+.choice{
+  border:1px solid var(--line); background:var(--paper); border-radius:999px; padding:8px 14px;
+  font-size:13.3px; color:var(--ink); font-weight:500;
+}
+.choice:hover{border-color:var(--ochre-ink);}
+.choice.sel{background:var(--navy); border-color:var(--navy); color:#fff;}
+.choice.sel::before{content:"✓ "; }
+input[type=text], input[type=number], input[type=date], select, textarea{
+  width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; background:var(--paper-2);
+  color:var(--ink); font-family:inherit; font-size:13.8px;
+}
+textarea{resize:vertical; min-height:70px;}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+@media (max-width:640px){ .grid2{grid-template-columns:1fr;} }
+
+.btn{
+  display:inline-flex; align-items:center; gap:7px; border-radius:8px; padding:10px 16px;
+  font-size:13.6px; font-weight:600; border:1px solid transparent;
+}
+.btn-primary{background:var(--navy); color:#fff;}
+.btn-primary:hover{background:var(--navy-2);}
+.btn-ochre{background:var(--ochre); color:#fff;}
+.btn-ghost{background:transparent; border-color:var(--line); color:var(--ink);}
+.sidebar .btn-ghost{ color:#F1F2F6; border-color:rgba(255,255,255,.32); background:rgba(255,255,255,.07); }
+.sidebar .btn-ghost:hover{ border-color:#fff; background:rgba(255,255,255,.14); }
+.btn-ghost:hover{border-color:var(--navy);}
+.btn-danger{background:transparent; border-color:var(--clay); color:var(--clay);}
+.btn[disabled]{opacity:.45; cursor:not-allowed;}
+.btn-row{display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;}
+
+.pill{display:inline-flex; align-items:center; gap:5px; font-size:11.3px; font-weight:700; padding:3px 9px; border-radius:999px; letter-spacing:.2px;}
+.pill-et{background:var(--teal-bg); color:var(--teal);}
+.pill-ou{background:var(--clay-bg); color:var(--clay); }
+.pill-ok{background:var(--teal-bg); color:var(--teal);}
+.pill-warn{background:#F5EBD3; color:var(--ochre-ink);}
+
+/* Checklist */
+.doc-group{border:1px solid var(--line); border-left:4px solid var(--ink-soft); border-radius:8px; margin-bottom:12px; overflow:hidden; background:var(--paper-2);}
+.doc-group.et{border-left-color:var(--teal);}
+.doc-group.ou{border-left-color:var(--clay);}
+.doc-group-head{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 14px; background:var(--line-soft);}
+.doc-group-title{font-weight:700; font-size:14px;}
+.doc-opts{padding:8px 14px 12px;}
+.doc-opt{display:flex; align-items:flex-start; gap:10px; padding:8px 2px; border-bottom:1px dashed var(--line-soft);}
+.doc-opt:last-child{border-bottom:none;}
+.doc-opt input[type=checkbox]{margin-top:3px; width:17px; height:17px; accent-color:var(--teal);}
+.doc-opt .opt-txt{flex:1;}
+.doc-opt .opt-txt .n{font-weight:600; font-size:13.6px;}
+.doc-opt .opt-txt .d{font-size:12.2px; color:var(--ink-soft);}
+.or-sep{font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:var(--clay); font-weight:700; padding:2px 0 2px 27px;}
+
+.progress-wrap{display:flex; align-items:center; gap:10px; margin-bottom:18px;}
+.progress-bar{flex:1; height:9px; background:var(--line-soft); border-radius:999px; overflow:hidden;}
+.progress-fill{height:100%; background:var(--teal); border-radius:999px; transition:width .25s;}
+.progress-num{font-weight:700; font-size:13px; white-space:nowrap;}
+
+/* Eligibility */
+.diag{border-radius:var(--radius); padding:18px 20px; margin-bottom:16px; border:1px solid var(--line);}
+.diag.plai{background:var(--teal-bg); border-color:var(--teal);}
+.diag.plus{background:#EAF1DA; border-color:#5C7A2E;}
+.diag.pls{background:#F5EBD3; border-color:var(--ochre);}
+.diag.none{background:var(--clay-bg); border-color:var(--clay);}
+.diag h3{margin-bottom:4px;}
+table.bareme{width:100%; border-collapse:collapse; font-size:12.6px; margin-top:10px;}
+table.bareme th, table.bareme td{border:1px solid var(--line); padding:6px 8px; text-align:right;}
+table.bareme th{background:var(--line-soft); text-align:center; font-size:11.8px;}
+table.bareme td:first-child, table.bareme th:first-child{text-align:left;}
+tr.hl td{background:rgba(185,129,43,.14); font-weight:700;}
+
+/* Vault */
+.doc-list{display:flex; flex-direction:column; gap:8px;}
+.doc-item{display:flex; align-items:center; gap:12px; border:1px solid var(--line); border-radius:8px; padding:9px 12px; background:var(--paper-2);}
+.doc-item img{width:44px; height:44px; object-fit:cover; border-radius:5px; border:1px solid var(--line);}
+.doc-item .ph{width:44px; height:44px; border-radius:5px; background:var(--line-soft); display:flex; align-items:center; justify-content:center; font-size:18px;}
+.doc-item .meta{flex:1; min-width:0;}
+.doc-item .meta .nm{font-weight:600; font-size:13.4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.doc-item .meta .mt{font-size:11.6px; color:var(--ink-soft);}
+.pages-strip{display:flex; gap:8px; flex-wrap:wrap; margin:10px 0;}
+.pages-strip .pg{position:relative;}
+.pages-strip img{width:70px; height:90px; object-fit:cover; border-radius:6px; border:1px solid var(--line);}
+.pages-strip button{position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%; background:var(--clay); color:#fff; border:none; font-size:11px; line-height:1;}
+
+/* Attestation preview */
+.paper-preview{background:#fff; color:#111; border:1px solid var(--line); border-radius:8px; padding:26px 30px; font-family:'Source Serif 4',serif; font-size:13.6px; line-height:1.7;}
+.paper-preview h4{font-family:'Source Serif 4',serif; text-align:center; text-transform:uppercase; letter-spacing:1px; font-size:15px; margin-bottom:18px;}
+.paper-preview .sign{margin-top:40px; display:flex; justify-content:space-between;}
+
+/* Modal */
+.overlay{position:fixed; inset:0; background:rgba(10,14,24,.55); display:flex; align-items:center; justify-content:center; padding:20px; z-index:50;}
+.modal{background:var(--paper-2); border-radius:12px; max-width:520px; width:100%; max-height:86vh; overflow-y:auto; padding:22px 24px calc(22px + env(safe-area-inset-bottom,0px));}
+.check-row{display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-bottom:1px solid var(--line-soft);}
+.check-row input{margin-top:3px; width:18px; height:18px; accent-color:var(--teal);}
+
+/* Contacts */
+.contact-card{border:1px solid var(--line); border-radius:8px; padding:14px 16px; margin-bottom:10px; background:var(--paper-2);}
+.contact-card h4{font-size:14.5px; margin-bottom:4px;}
+.tag{display:inline-block; font-size:11px; font-weight:700; background:var(--line-soft); color:var(--ink-soft); padding:2px 8px; border-radius:999px; margin-right:5px;}
+
+.notice{border:1px solid var(--line); border-left:4px solid var(--ochre); background:var(--paper-2); border-radius:8px; padding:12px 15px; font-size:12.8px; color:var(--ink-soft); margin-bottom:16px;}
+.notice b{color:var(--ink);}
+.savebar{position:fixed; bottom:16px; right:20px; background:var(--navy); color:#fff; padding:9px 16px; border-radius:999px; font-size:12.3px; opacity:0; transform:translateY(8px); transition:all .25s; pointer-events:none; z-index:60;}
+.savebar.show{opacity:1; transform:translateY(0);}
+
+@media (max-width:820px){
+  #app{flex-direction:column;}
+  .sidebar{
+    position:sticky; top:0; z-index:40; width:100%; height:auto; flex:none;
+    padding:calc(10px + env(safe-area-inset-top,0px)) 10px 10px;
+    box-shadow:0 2px 10px rgba(0,0,0,.25);
+  }
+  .brand{padding:2px 4px 10px; margin-bottom:8px;}
+  nav.steps{flex-direction:row; overflow-x:auto; gap:8px; padding-bottom:2px; -webkit-overflow-scrolling:touch;}
+  .step-btn{
+    flex:0 0 auto; white-space:nowrap; background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.14); padding:8px 12px;
+  }
+  .step-btn .label{color:#FFFFFF;}
+  .step-btn .sub{display:none;}
+  .step-btn.active{background:var(--ochre); border-color:var(--ochre);}
+  .step-btn.active .num{background:rgba(255,255,255,.35); color:#fff;}
+  .step-btn.active .label{color:#fff;}
+  main{padding:18px 16px 60px; max-width:100%;}
+  .sidebar-toolbar{ max-width:200px; }
+  .sidebar-foot{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .sidebar-foot .foot-notice-text{ display:none; }
+  .sidebar-foot .btn{ width:auto; flex:1 1 140px; margin-top:0 !important; }
+}
+
+/* ---- Bandeau d'échéances ---- */
+.alert-banner{border-radius:10px; padding:12px 16px; margin-bottom:18px; display:flex; flex-direction:column; gap:6px; border:1px solid;}
+.alert-banner.lvl-info{background:#EAF1DA; border-color:#5C7A2E; color:#3E5620;}
+.alert-banner.lvl-warn{background:#F5EBD3; border-color:var(--ochre); color:var(--ochre-ink);}
+.alert-banner.lvl-urgent{background:var(--clay-bg); border-color:var(--clay); color:var(--clay);}
+.alert-row{display:flex; align-items:center; gap:8px; font-size:12.8px; font-weight:600;}
+.alert-row .dot{width:7px; height:7px; border-radius:50%; background:currentColor; flex:0 0 auto;}
+
+/* ---- Navigation précédent/suivant ---- */
+.step-nav{display:flex; justify-content:space-between; align-items:center; margin-top:28px; padding-top:18px; border-top:1px solid var(--line);}
+.step-nav .spacer{flex:1;}
+
+/* ---- OCR ---- */
+.ocr-panel{margin-top:12px; border:1px solid var(--line); border-radius:8px; padding:12px 14px; background:var(--line-soft);}
+.ocr-panel textarea{min-height:110px; font-family:ui-monospace, monospace; font-size:12px;}
+.ocr-field-row{display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;}
+.ocr-field-row label{font-size:12.3px; font-weight:600; white-space:nowrap;}
+.ocr-field-row input{max-width:170px;}
+.spinner{display:inline-block; width:13px; height:13px; border:2px solid rgba(0,0,0,.2); border-top-color:var(--navy); border-radius:50%; animation:spin .7s linear infinite; margin-right:6px; vertical-align:-2px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ---- Visionneuse plein écran ---- */
+.viewer-overlay{position:fixed; inset:0; background:rgba(10,10,14,.92); z-index:80; display:flex; flex-direction:column;}
+.viewer-head{display:flex; align-items:center; justify-content:space-between; padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px; color:#fff;}
+.viewer-head button{background:rgba(255,255,255,.12); border:none; color:#fff; border-radius:8px; padding:8px 14px; font-size:13px;}
+.viewer-body{flex:1; display:flex; align-items:center; justify-content:center; overflow:auto; padding:10px;}
+.viewer-body img{max-width:95%; max-height:85vh; object-fit:contain; border-radius:4px; box-shadow:0 10px 40px rgba(0,0,0,.5);}
+.viewer-nav{display:flex; justify-content:center; gap:16px; padding:10px 0 calc(14px + env(safe-area-inset-bottom,0px)); color:#fff; align-items:center;}
+.viewer-nav button{background:rgba(255,255,255,.12); border:none; color:#fff; border-radius:8px; padding:8px 16px; font-size:14px;}
+.viewer-nav button:disabled{opacity:.35;}
+
+/* ---- Mode accessibilité ---- */
+html.a11y-mode{ font-size:118%; }
+html.a11y-mode .hint{ color:var(--ink); font-size:1em; }
+html.a11y-mode .btn{ padding:12px 18px; font-size:1.05em; }
+html.a11y-mode .choice{ padding:11px 16px; font-size:1.02em; }
+html.a11y-mode input, html.a11y-mode select, html.a11y-mode textarea{ padding:12px 13px; font-size:1.05em; }
+html.a11y-mode .view-lede{ color:var(--ink); }
+html.a11y-mode .card, html.a11y-mode .doc-group, html.a11y-mode .contact-card{ border-width:2px; }
+html.a11y-mode :focus-visible{ outline:3px solid var(--ochre); outline-offset:3px; }
+html.a11y-mode .step-btn .sub{ color:#D6DAE6; }
+.welcome-shell{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:calc(32px + env(safe-area-inset-top,0px)) 20px calc(32px + env(safe-area-inset-bottom,0px)); background:var(--navy);}
+.welcome-card{background:var(--paper-2); border-radius:16px; max-width:460px; width:100%; padding:34px 30px; box-shadow:0 24px 70px rgba(0,0,0,.28);}
+.welcome-mark{width:50px; height:50px; border-radius:12px; background:var(--ochre); display:flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:16px;}
+.welcome-card h1{font-size:23px; margin-bottom:4px;}
+.welcome-card .tagline{color:var(--ink-soft); margin-bottom:22px; font-size:13.6px;}
+.welcome-actions{display:flex; flex-direction:column; gap:10px; margin-top:6px;}
+.welcome-actions .btn{justify-content:center; width:100%; padding:12px 16px;}
+.welcome-divider{display:flex; align-items:center; gap:10px; margin:14px 0; color:var(--ink-soft); font-size:11.5px;}
+.welcome-divider::before, .welcome-divider::after{content:""; flex:1; height:1px; background:var(--line);}
+@media print{
+  body *{visibility:hidden;}
+  .print-target, .print-target *{visibility:visible;}
+  .print-target{position:absolute; top:0; left:0; width:100%;}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="savebar" id="savebar">Enregistré sur cet appareil</div>
+
+<script>
+/* =========================================================================
+   CLÉ DE DOSSIER — assistant logement social
+   Toutes les données restent dans le navigateur (localStorage). Rien n'est
+   envoyé à un serveur : c'est un choix délibéré pour la protection des
+   données (territorialité = l'appareil de la personne, point final).
+   ========================================================================= */
+
+const LS_KEY = 'cledossier_state_v1';
+
+const DEFAULT_STATE = {
+  profil: {
+    statut: null,        // 'francais' | 'ue' | 'hors_ue_titre' | 'hors_ue_demande'
+    hebergement: null,   // 'locataire' | 'heberge' | 'proprietaire' | 'sans_domicile' | 'foyer'
+    activite: null,      // 'salarie' | 'independant' | 'sans_emploi' | 'retraite' | 'etudiant' | 'inactif'
+    famille: null,       // 'seul' | 'couple' | 'famille_enfants' | 'famille_monoparentale' | 'separe_recent'
+    taille: 1,
+    zone: 'autres',       // 'paris' | 'idf' | 'autres'
+    rfr: '',
+    casParticuliers: [], // 'handicap','violences','ue_recent','sans_papiers_regularisation'
+    dateDepot: '',        // date de dépôt / dernier renouvellement de la demande SNE
+    revenuMensuelNet: '', // revenu mensuel net du foyer (tous membres)
+    loyerEstime: '',      // loyer envisagé ou observé (hors charges)
+    chargesLocatives: '', // charges locatives mensuelles estimées
+    credits: '',          // mensualités de crédits en cours
+    pensionsVersees: '',  // pensions alimentaires versées
+    autresCharges: ''     // autres charges récurrentes mensuelles
+  },
+  checklistTicked: {},   // id -> bool
+  documents: [],         // {id, name, category, pages:[dataURL,...], addedAt, memberId, expiry, ocrText}
+  attestations: [],      // saved generated attestations
+  activeTab: 'profil',
+  onboarded: false,      // écran d'accueil franchi ?
+  notifsEnabled: false,  // rappels navigateur activés ?
+  a11y: false,            // mode accessibilité (texte agrandi / contraste renforcé)
+  lang: 'fr',            // langue de l'interface : fr | en | ar | pt
+  membres: [{id:'principal', nom:'', role:'principal'}], // foyer : demandeur + co-demandeur/enfants
+  suivi: {
+    numeroUnique: '',
+    statut: 'non_depose', // non_depose | en_attente | proposition | refuse | attribue
+    journal: []           // {id, date, texte}
+  }
+};
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return structuredClone(DEFAULT_STATE);
+    const parsed = JSON.parse(raw);
+    const merged = Object.assign(structuredClone(DEFAULT_STATE), parsed, {
+      profil: Object.assign(structuredClone(DEFAULT_STATE.profil), parsed.profil||{}),
+      suivi: Object.assign(structuredClone(DEFAULT_STATE.suivi), parsed.suivi||{}),
+      membres: Array.isArray(parsed.membres) && parsed.membres.length ? parsed.membres : structuredClone(DEFAULT_STATE.membres),
+    });
+    return merged;
+  }catch(e){ return structuredClone(DEFAULT_STATE); }
+}
+let state = loadState();
+let saveTimer=null;
+function persist(){
+  try{
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    const bar=document.getElementById('savebar');
+    bar.classList.add('show');
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(()=>bar.classList.remove('show'), 1200);
+  }catch(e){
+    console.error('Stockage local indisponible ou plein', e);
+  }
+}
+
+let downloadsCap = null;
+(async ()=>{ try{ downloadsCap = await window.claude?.use?.('downloads'); }catch(e){ downloadsCap=null; } })();
+
+function printOnly(el){
+  if(!el) return;
+  document.querySelectorAll('.print-target').forEach(e=>e.classList.remove('print-target'));
+  el.classList.add('print-target');
+  window.print();
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
+
+/* -------------------------- SAUVEGARDE / RESTAURATION -------------------------- */
+function buildBackupObject(){
+  return {
+    format: 'cledossier-backup',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    profil: state.profil,
+    checklistTicked: state.checklistTicked,
+    documents: state.documents,
+    attestations: state.attestations,
+  };
+}
+async function exportBackup(){
+  const json = JSON.stringify(buildBackupObject(), null, 2);
+  const filename = 'sauvegarde-dossier-logement-' + new Date().toISOString().slice(0,10) + '.json';
+  if(downloadsCap){
+    try{ await downloadsCap.save({filename, data: json}); return; }catch(e){ console.error(e); }
+  }
+  const blob = new Blob([json], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+}
+function importBackupFile(file, onDone){
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const data = JSON.parse(reader.result);
+      if(!data || typeof data !== 'object' || !data.profil){
+        alert('Ce fichier ne ressemble pas à une sauvegarde valide de Clé de dossier.');
+        return;
+      }
+      state.profil = Object.assign(structuredClone(DEFAULT_STATE.profil), data.profil||{});
+      state.checklistTicked = data.checklistTicked || {};
+      state.documents = Array.isArray(data.documents) ? data.documents : [];
+      state.attestations = Array.isArray(data.attestations) ? data.attestations : [];
+      state.onboarded = true;
+      persist();
+      onDone && onDone();
+    }catch(e){
+      alert('Impossible de lire ce fichier : il n\u2019est pas au format JSON attendu.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* -------------------------- ÉCRAN D'ACCUEIL ---------------------------- */
+function renderWelcome(){
+  const app = document.getElementById('app');
+  const hasExisting = !!(state.profil.statut || state.profil.hebergement || state.documents.length || Object.keys(state.checklistTicked).length);
+  app.innerHTML = `
+    <div class="welcome-shell">
+      <div class="welcome-card">
+        <div class="welcome-mark">🔑</div>
+        <h1>Clé de dossier</h1>
+        <p class="tagline">Assistant pour préparer une demande de logement social. Tes réponses et tes documents restent uniquement sur cet appareil.</p>
+        <div class="welcome-actions">
+          ${hasExisting ? `<button class="btn btn-primary" id="btn-continue">Continuer mon dossier en cours</button>` : `<button class="btn btn-primary" id="btn-new">Commencer un nouveau dossier</button>`}
+          <button class="btn btn-ghost" id="btn-import">Reprendre une sauvegarde (.json)</button>
+          <input type="file" id="import-input" accept="application/json,.json" style="display:none;">
+        </div>
+        ${hasExisting ? `<div class="welcome-divider">ou</div><button class="btn btn-danger" id="btn-reset" style="width:100%; justify-content:center;">Repartir d\u2019un dossier vierge</button>` : ''}
+        <div class="notice" style="margin-top:20px; margin-bottom:0;">Aucune donnée n\u2019est envoyée à un serveur. Si tu changes d\u2019appareil ou de navigateur, pense à télécharger une sauvegarde (.json) depuis l\u2019onglet « Mes documents » pour pouvoir la reprendre ici.</div>
+      </div>
+    </div>
+  `;
+  const goApp = ()=>{ state.onboarded = true; persist(); render(); };
+  const btnContinue = document.getElementById('btn-continue');
+  if(btnContinue) btnContinue.addEventListener('click', goApp);
+  const btnNew = document.getElementById('btn-new');
+  if(btnNew) btnNew.addEventListener('click', goApp);
+  const btnReset = document.getElementById('btn-reset');
+  if(btnReset) btnReset.addEventListener('click', ()=>{
+    if(confirm('Cela remplace le dossier actuel sur cet appareil par un dossier vierge. Pense à exporter une sauvegarde avant si besoin. Continuer ?')){
+      const keepOnboard = true;
+      state = structuredClone(DEFAULT_STATE);
+      state.onboarded = keepOnboard;
+      persist();
+      render();
+    }
+  });
+  document.getElementById('btn-import').addEventListener('click', ()=>document.getElementById('import-input').click());
+  document.getElementById('import-input').addEventListener('change', (e)=>{
+    const f = e.target.files[0];
+    if(f) importBackupFile(f, ()=>render());
+  });
+}
+
+function boot(){
+  applyDocDirection();
+  document.documentElement.classList.toggle('a11y-mode', !!state.a11y);
+  if(!state.onboarded){ renderWelcome(); } else { render(); }
+}
+
+/* ==================== ALERTES D'ÉCHÉANCE ==================== */
+function daysBetween(dateStr){
+  const d = new Date(dateStr+'T00:00:00');
+  if(isNaN(d)) return null;
+  const now = new Date(); now.setHours(0,0,0,0);
+  return Math.round((d-now)/86400000);
+}
+function levelFor(days){
+  if(days<0) return 'urgent';
+  if(days<=7) return 'urgent';
+  if(days<=14) return 'warn';
+  if(days<=30) return 'info';
+  return null;
+}
+function computeDeadlineAlerts(){
+  const alerts = [];
+  const p = state.profil;
+  if(p.dateDepot){
+    const exp = new Date(p.dateDepot+'T00:00:00');
+    exp.setFullYear(exp.getFullYear()+1);
+    const iso = exp.toISOString().slice(0,10);
+    const days = daysBetween(iso);
+    const lvl = days!=null ? levelFor(days) : null;
+    if(lvl){
+      alerts.push({
+        level:lvl, days,
+        label: days<0
+          ? `Ta demande de logement social a dépassé sa date de renouvellement (le ${exp.toLocaleDateString('fr-FR')}) — elle risque d\u2019être radiée si ce n\u2019est pas déjà fait.`
+          : `Ta demande de logement social doit être renouvelée avant le ${exp.toLocaleDateString('fr-FR')} (dans ${days} jour${days>1?'s':''}).`
+      });
+    }
+  }
+  state.documents.forEach(d=>{
+    if(!d.expiry) return;
+    const days = daysBetween(d.expiry);
+    const lvl = days!=null ? levelFor(days) : null;
+    if(lvl){
+      alerts.push({
+        level:lvl, days,
+        label: days<0
+          ? `Le document « ${d.name} » a dépassé sa date de validité (${new Date(d.expiry+'T00:00:00').toLocaleDateString('fr-FR')}) — pense à le renouveler.`
+          : `Le document « ${d.name} » arrive à expiration le ${new Date(d.expiry+'T00:00:00').toLocaleDateString('fr-FR')} (dans ${days} jour${days>1?'s':''}).`
+      });
+    }
+  });
+  if(state.documents.length){
+    state.membres.forEach(m=>{
+      if(m.role==='enfant') return; // les enfants n'ont en général pas de pièces propres
+      if(m.role!=='principal' && !m.nom) return; // placeholder non renseigné
+      const hasDocs = state.documents.some(d=>d.memberId===m.id);
+      if(!hasDocs){
+        const who = m.nom || (t('membres.roleOpts').principal);
+        alerts.push({level:'info', days:999, label:`Aucun document n\u2019est encore associé à ${who} dans le coffre-fort — pense à vérifier que sa pièce d\u2019identité et ses justificatifs de ressources y figurent.`});
+      }
+    });
+  }
+  const order = {urgent:0, warn:1, info:2};
+  alerts.sort((a,b)=>order[a.level]-order[b.level] || a.days-b.days);
+  return alerts;
+}
+function renderAlertBanner(main){
+  const alerts = computeDeadlineAlerts();
+  if(!alerts.length) return;
+  const worst = alerts[0].level;
+  const box = document.createElement('div');
+  box.className = 'alert-banner lvl-'+worst;
+  box.innerHTML = `<b style="font-size:13.2px;">⏰ ${alerts.length>1? alerts.length+' échéances à surveiller' : 'Échéance à surveiller'}</b>` +
+    alerts.map(a=>`<div class="alert-row"><span class="dot"></span>${esc(a.label)}</div>`).join('');
+  main.appendChild(box);
+}
+function maybeFireBrowserNotifications(){
+  if(!state.notifsEnabled || typeof Notification==='undefined' || Notification.permission!=='granted') return;
+  const alerts = computeDeadlineAlerts().filter(a=>a.level==='urgent' || a.level==='warn');
+  alerts.slice(0,3).forEach(a=>{
+    try{ new Notification('Clé de dossier — rappel', {body:a.label}); }catch(e){}
+  });
+}
+
+/* ==================== I18N ==================== */
+const LANGS = [
+  {code:'fr', label:'Français'},
+  {code:'en', label:'English'},
+  {code:'ar', label:'العربية'},
+  {code:'pt', label:'Português'},
+];
+const TRANSLATIONS = {
+  fr: {
+    'app.tagline':'Assistant pour préparer une demande de logement social.',
+    'sidebar.dataNotice':'<b>Vos données restent ici.</b><br>Aucun document ni réponse n\u2019est envoyé à un serveur : tout est stocké localement, dans ce navigateur, sur cet appareil.',
+    'sidebar.home':'🏠 Écran d\u2019accueil',
+    'sidebar.glossary':'📖 Glossaire',
+    'sidebar.notifsOn':'🔔 Rappels activés',
+    'sidebar.notifsOff':'🔕 Activer les rappels',
+    'sidebar.a11yOn':'🔎 Mode accessibilité activé',
+    'sidebar.a11yOff':'🔎 Mode accessibilité',
+    'sidebar.lang':'Langue',
+    'sidebar.langNote':'Les documents générés (attestation, courrier DALO) restent en français : ce sont les pièces à fournir à l\u2019administration française.',
+    'step.profil.label':'Mon profil', 'step.profil.sub':'2 min de questions',
+    'step.checklist.label':'Ma checklist', 'step.checklist.sub':'Documents à réunir',
+    'step.eligibilite.label':'Mon éligibilité', 'step.eligibilite.sub':'PLAI / PLUS / PLS',
+    'step.documents.label':'Mes documents', 'step.documents.sub':'Scanner & coffre-fort',
+    'step.verification.label':'Avant l\u2019envoi', 'step.verification.sub':'Contrôle anti-erreur',
+    'step.contacts.label':'Qui contacter', 'step.contacts.sub':'Guichets & réservataires',
+    'welcome.title':'Clé de dossier',
+    'welcome.tagline':'Assistant pour préparer une demande de logement social. Tes réponses et tes documents restent uniquement sur cet appareil.',
+    'welcome.continue':'Continuer mon dossier en cours',
+    'welcome.new':'Commencer un nouveau dossier',
+    'welcome.import':'Reprendre une sauvegarde (.json)',
+    'welcome.reset':'Repartir d\u2019un dossier vierge',
+    'welcome.notice':'Aucune donnée n\u2019est envoyée à un serveur. Si tu changes d\u2019appareil ou de navigateur, pense à télécharger une sauvegarde (.json) depuis l\u2019onglet « Mes documents » pour pouvoir la reprendre ici.',
+    'profil.title':'Mon profil',
+    'profil.lede':'Réponds à ces quelques questions : elles pilotent automatiquement ta checklist de documents, ton diagnostic d\u2019éligibilité et les bons interlocuteurs à contacter.',
+    'profil.statut':'Statut de séjour',
+    'profil.hebergement':'Situation de logement actuelle',
+    'profil.activite':'Activité professionnelle',
+    'profil.famille':'Situation familiale',
+    'profil.taille':'Nombre de personnes dans le foyer',
+    'profil.zone':'Zone géographique du logement recherché',
+    'profil.cas':'Cas particuliers',
+    'profil.multi':'(sélection multiple)',
+    'profil.dateDepot':'Date de dépôt (ou dernier renouvellement) de la demande SNE',
+    'profil.optional':'(optionnel)',
+    'profil.dateDepotHint':'Une demande de logement social est valable 1 an et doit être renouvelée chaque année. Renseigne cette date pour recevoir un rappel ici avant l\u2019échéance.',
+    'profil.privacyNotice':'Ces informations ne quittent pas ton appareil : elles sont utilisées uniquement pour calculer ta checklist et ton diagnostic, en local.',
+    'membres.title':'Membres du foyer',
+    'membres.lede':'Ajoute les personnes du foyer pour associer chaque document scanné à la bonne personne.',
+    'membres.addName':'Nom (ex. « Moi », « Karim », « Enfant 1 »)',
+    'membres.role':'Rôle',
+    'membres.roleOpts':{principal:'Demandeur principal', codemandeur:'Co-demandeur·e', enfant:'Enfant à charge', autre:'Autre'},
+    'membres.add':'Ajouter',
+    'membres.remove':'Retirer',
+    'suivi.title':'Suivi de ma demande',
+    'suivi.lede':'Note manuellement où en est ta demande — ce suivi reste local, il ne se synchronise pas avec le SNE.',
+    'suivi.numero':'Numéro unique d\u2019enregistrement',
+    'suivi.statut':'Statut actuel',
+    'suivi.statutOpts':{non_depose:'Pas encore déposée', en_attente:'En attente', proposition:'Proposition reçue', refuse:'Refusée', attribue:'Logement attribué'},
+    'suivi.journal':'Journal (démarches, courriers reçus\u2026)',
+    'suivi.journalAdd':'Ajouter une note',
+    'suivi.journalPlaceholder':'Ex. Appel avec le CCAS, renouvellement effectué\u2026',
+    'checklist.title':'Ma checklist',
+    'checklist.lede':'Générée à partir de ton profil.',
+    'checklist.notReady':'Complète d\u2019abord ton',
+    'checklist.notReadyLink':'profil',
+    'checklist.notReadyEnd':'(statut, logement, activité, situation familiale) pour générer la checklist.',
+    'eligibilite.title':'Mon éligibilité HLM',
+    'eligibilite.lede':'Compare ton revenu fiscal de référence (RFR, année N-2) aux plafonds réglementaires pour savoir quelles catégories de logement social te sont accessibles.',
+    'eligibilite.rfr':'Revenu fiscal de référence du foyer (RFR, N-2)',
+    'eligibilite.rfrHint':'Somme des RFR de toutes les personnes du foyer, visible sur l\u2019avis d\u2019imposition.',
+    'eligibilite.zone':'Zone géographique',
+    'eligibilite.taille':'Taille du foyer',
+    'budget.title':'Mon budget logement',
+    'budget.lede':'Des calculs indicatifs pour t\u2019aider à juger si un logement est adapté à ton budget — ce ne sont pas des seuils officiels d\u2019attribution.',
+    'budget.revenu':'Revenu mensuel net du foyer',
+    'budget.revenuHint':'Total des salaires, pensions, allocations nets perçus chaque mois par le foyer.',
+    'budget.loyer':'Loyer envisagé (hors charges)',
+    'budget.chargesLoc':'Charges locatives mensuelles estimées',
+    'budget.credits':'Mensualités de crédits en cours',
+    'budget.pensions':'Pensions alimentaires versées',
+    'budget.autresCharges':'Autres charges récurrentes (mensuel)',
+    'budget.tauxEffort':'Taux d\u2019effort',
+    'budget.tauxEffortDef':'Part du revenu consacrée au loyer et charges locatives.',
+    'budget.resteAVivre':'Reste à vivre du foyer',
+    'budget.resteAVivreParPersonne':'Reste à vivre par personne',
+    'budget.resteAVivreDef':'Ce qu\u2019il reste chaque mois une fois le loyer, les charges locatives, les crédits et les autres charges déduits du revenu.',
+    'budget.needRevenu':'Renseigne le revenu mensuel net pour voir les calculs.',
+    'budget.bandGood':'Taux d\u2019effort mesuré — généralement considéré comme soutenable.',
+    'budget.bandWarn':'Taux d\u2019effort élevé — certains bailleurs y sont attentifs à l\u2019étude du dossier.',
+    'budget.bandHigh':'Taux d\u2019effort très élevé — cela peut compliquer l\u2019acceptation du dossier par certains bailleurs.',
+    'suivi.anciennete':'Ancienneté de la demande',
+    'suivi.joursDepot':'jour(s) depuis le dépôt',
+    'documents.title':'Mes documents',
+    'documents.lede':'Photographie tes justificatifs, assemble-les en un seul PDF propre, et génère une attestation d\u2019hébergement si besoin. Tout reste stocké localement.',
+    'verification.title':'Vérification avant l\u2019envoi',
+    'verification.lede':'Les 6 erreurs les plus fréquentes qui font rejeter ou retarder un dossier. Passe-les en revue juste avant de déposer ta demande.',
+    'verification.launch':'Lancer la vérification',
+    'contacts.title':'Qui contacter',
+    'contacts.lede':'Un guide, pas un annuaire en temps réel : identifie les bons interlocuteurs selon ton profil, puis vérifie leurs coordonnées et horaires auprès des sources officielles ci-dessous.',
+    'glossary.title':'Glossaire',
+    'glossary.lede':'Les mots-clés du logement social, expliqués simplement.',
+    'glossary.search':'Rechercher un terme\u2026',
+    'chat.open':'Une question ?',
+    'chat.title':'Assistant Clé de dossier',
+    'chat.disclaimer':'Réponses générées automatiquement : elles peuvent contenir des erreurs. Vérifie toujours une information importante auprès d\u2019un organisme officiel (mairie, CCAS, bailleur).',
+    'chat.placeholder':'Pose ta question\u2026',
+    'chat.send':'Envoyer',
+    'chat.thinking':'Réflexion en cours\u2026',
+    'chat.stop':'Arrêter',
+    'chat.notAvailable':'L\u2019assistant n\u2019est pas disponible dans ce contexte pour le moment.',
+    'chat.notGranted':'Tu as refusé (ou l\u2019organisation a désactivé) l\u2019accès à l\u2019assistant pour cette page.',
+    'chat.rateLimited':'Trop de questions envoyées d\u2019un coup — réessaie dans un instant.',
+    'chat.error':'Une erreur est survenue. Réessaie, ou reformule ta question.',
+    'chat.welcome':'Bonjour ! Je peux répondre à tes questions sur le logement social et sur l\u2019utilisation de cette application. Mes réponses peuvent contenir des erreurs : vérifie toujours les informations importantes.',
+  },
+  en: {
+    'app.tagline':'An assistant to help you prepare a social housing application.',
+    'sidebar.dataNotice':'<b>Your data stays here.</b><br>No document or answer is sent to a server: everything is stored locally, in this browser, on this device.',
+    'sidebar.home':'🏠 Home screen',
+    'sidebar.glossary':'📖 Glossary',
+    'sidebar.notifsOn':'🔔 Reminders on',
+    'sidebar.notifsOff':'🔕 Turn on reminders',
+    'sidebar.a11yOn':'🔎 Accessibility mode on',
+    'sidebar.a11yOff':'🔎 Accessibility mode',
+    'sidebar.lang':'Language',
+    'sidebar.langNote':'Generated documents (hosting certificate, DALO letter) stay in French: these are papers submitted to the French administration.',
+    'step.profil.label':'My profile', 'step.profil.sub':'2-minute quiz',
+    'step.checklist.label':'My checklist', 'step.checklist.sub':'Documents to gather',
+    'step.eligibilite.label':'My eligibility', 'step.eligibilite.sub':'PLAI / PLUS / PLS',
+    'step.documents.label':'My documents', 'step.documents.sub':'Scanner & vault',
+    'step.verification.label':'Before sending', 'step.verification.sub':'Error check',
+    'step.contacts.label':'Who to contact', 'step.contacts.sub':'Offices & channels',
+    'welcome.title':'Clé de dossier',
+    'welcome.tagline':'An assistant to help you prepare a social housing application. Your answers and documents stay only on this device.',
+    'welcome.continue':'Continue my current file',
+    'welcome.new':'Start a new file',
+    'welcome.import':'Restore a backup (.json)',
+    'welcome.reset':'Start over with a blank file',
+    'welcome.notice':'No data is ever sent to a server. If you switch device or browser, download a backup (.json) from the "My documents" tab first so you can restore it here.',
+    'profil.title':'My profile',
+    'profil.lede':'Answer a few questions: they automatically drive your document checklist, your eligibility diagnosis, and who to contact.',
+    'profil.statut':'Residence status',
+    'profil.hebergement':'Current housing situation',
+    'profil.activite':'Professional activity',
+    'profil.famille':'Family situation',
+    'profil.taille':'Number of people in the household',
+    'profil.zone':'Geographic area of the housing you are looking for',
+    'profil.cas':'Special situations',
+    'profil.multi':'(select all that apply)',
+    'profil.dateDepot':'Date you filed (or last renewed) your SNE application',
+    'profil.optional':'(optional)',
+    'profil.dateDepotHint':'A social housing application is valid for 1 year and must be renewed every year. Fill this in to get a reminder here before it expires.',
+    'profil.privacyNotice':'This information never leaves your device: it is only used to compute your checklist and diagnosis, locally.',
+    'membres.title':'Household members',
+    'membres.lede':'Add the people in your household so each scanned document can be linked to the right person.',
+    'membres.addName':'Name (e.g. "Me", "Karim", "Child 1")',
+    'membres.role':'Role',
+    'membres.roleOpts':{principal:'Main applicant', codemandeur:'Co-applicant', enfant:'Dependent child', autre:'Other'},
+    'membres.add':'Add',
+    'membres.remove':'Remove',
+    'suivi.title':'Tracking my application',
+    'suivi.lede':'Manually note where your application stands — this stays local and does not sync with the SNE.',
+    'suivi.numero':'Unique registration number',
+    'suivi.statut':'Current status',
+    'suivi.statutOpts':{non_depose:'Not filed yet', en_attente:'Waiting', proposition:'Offer received', refuse:'Refused', attribue:'Housing granted'},
+    'suivi.journal':'Journal (steps taken, letters received\u2026)',
+    'suivi.journalAdd':'Add a note',
+    'suivi.journalPlaceholder':'E.g. Called the CCAS, renewed the application\u2026',
+    'checklist.title':'My checklist',
+    'checklist.lede':'Generated from your profile.',
+    'checklist.notReady':'First complete your',
+    'checklist.notReadyLink':'profile',
+    'checklist.notReadyEnd':'(status, housing, activity, family situation) to generate the checklist.',
+    'eligibilite.title':'My HLM eligibility',
+    'eligibilite.lede':'Compare your reference tax income (RFR, year N-2) to the regulatory ceilings to find out which social housing categories you can access.',
+    'eligibilite.rfr':'Household reference tax income (RFR, N-2)',
+    'eligibilite.rfrHint':'Sum of the RFR of everyone in the household, shown on the tax notice.',
+    'eligibilite.zone':'Geographic area',
+    'eligibilite.taille':'Household size',
+    'budget.title':'My housing budget',
+    'budget.lede':'Indicative figures to help you judge whether a home fits your budget — these are not official allocation thresholds.',
+    'budget.revenu':'Household net monthly income',
+    'budget.revenuHint':'Total net wages, pensions and benefits received by the household each month.',
+    'budget.loyer':'Planned rent (excluding charges)',
+    'budget.chargesLoc':'Estimated monthly rental charges',
+    'budget.credits':'Current loan repayments',
+    'budget.pensions':'Maintenance/alimony paid',
+    'budget.autresCharges':'Other recurring charges (monthly)',
+    'budget.tauxEffort':'Effort rate',
+    'budget.tauxEffortDef':'Share of income spent on rent and rental charges.',
+    'budget.resteAVivre':'Household disposable income',
+    'budget.resteAVivreParPersonne':'Disposable income per person',
+    'budget.resteAVivreDef':'What is left each month once rent, rental charges, loan repayments and other charges are deducted from income.',
+    'budget.needRevenu':'Enter the net monthly income to see the calculations.',
+    'budget.bandGood':'Moderate effort rate — generally seen as sustainable.',
+    'budget.bandWarn':'High effort rate — some landlords look closely at this when reviewing an application.',
+    'budget.bandHigh':'Very high effort rate — this can make it harder for some landlords to accept the application.',
+    'suivi.anciennete':'Application age',
+    'suivi.joursDepot':'day(s) since filing',
+    'documents.title':'My documents',
+    'documents.lede':'Photograph your papers, assemble them into one clean PDF, and generate a hosting certificate if needed. Everything stays stored locally.',
+    'verification.title':'Check before sending',
+    'verification.lede':'The 6 most common mistakes that get an application rejected or delayed. Go through them right before you submit.',
+    'verification.launch':'Start the check',
+    'contacts.title':'Who to contact',
+    'contacts.lede':'A guide, not a live directory: identify the right contacts for your profile, then verify their details and hours with the official sources below.',
+    'glossary.title':'Glossary',
+    'glossary.lede':'Social housing terms, explained simply.',
+    'glossary.search':'Search a term\u2026',
+    'chat.open':'A question?',
+    'chat.title':'Clé de dossier assistant',
+    'chat.disclaimer':'Automatically generated answers: they may contain mistakes. Always double-check anything important with an official body (town hall, CCAS, landlord).',
+    'chat.placeholder':'Ask your question\u2026',
+    'chat.send':'Send',
+    'chat.thinking':'Thinking\u2026',
+    'chat.stop':'Stop',
+    'chat.notAvailable':'The assistant isn\u2019t available in this context right now.',
+    'chat.notGranted':'You declined (or your organization disabled) access to the assistant on this page.',
+    'chat.rateLimited':'Too many questions sent at once — try again in a moment.',
+    'chat.error':'Something went wrong. Try again, or rephrase your question.',
+    'chat.welcome':'Hi! I can answer your questions about social housing and about using this app. My answers may contain mistakes: always double-check anything important.',
+  },
+  ar: {
+    'app.tagline':'مساعد لإعداد طلب السكن الاجتماعي.',
+    'sidebar.dataNotice':'<b>بياناتك تبقى هنا.</b><br>لا يتم إرسال أي مستند أو إجابة إلى خادم: كل شيء مخزَّن محليًا، في هذا المتصفح، على هذا الجهاز.',
+    'sidebar.home':'🏠 الشاشة الرئيسية',
+    'sidebar.glossary':'📖 المصطلحات',
+    'sidebar.notifsOn':'🔔 التذكيرات مفعّلة',
+    'sidebar.notifsOff':'🔕 تفعيل التذكيرات',
+    'sidebar.a11yOn':'🔎 وضع إمكانية الوصول مفعّل',
+    'sidebar.a11yOff':'🔎 وضع إمكانية الوصول',
+    'sidebar.lang':'اللغة',
+    'sidebar.langNote':'المستندات التي يتم إنشاؤها (شهادة الإيواء، رسالة DALO) تبقى بالفرنسية: فهي أوراق تُقدَّم إلى الإدارة الفرنسية.',
+    'step.profil.label':'ملفي الشخصي', 'step.profil.sub':'استبيان دقيقتين',
+    'step.checklist.label':'قائمتي', 'step.checklist.sub':'المستندات المطلوبة',
+    'step.eligibilite.label':'أهليتي', 'step.eligibilite.sub':'PLAI / PLUS / PLS',
+    'step.documents.label':'مستنداتي', 'step.documents.sub':'الماسح والخزنة',
+    'step.verification.label':'قبل الإرسال', 'step.verification.sub':'فحص الأخطاء',
+    'step.contacts.label':'من تتصل به', 'step.contacts.sub':'الجهات والمكاتب',
+    'welcome.title':'Clé de dossier',
+    'welcome.tagline':'مساعد لإعداد طلب السكن الاجتماعي. تبقى إجاباتك ومستنداتك على هذا الجهاز فقط.',
+    'welcome.continue':'متابعة ملفي الحالي',
+    'welcome.new':'بدء ملف جديد',
+    'welcome.import':'استعادة نسخة احتياطية (.json)',
+    'welcome.reset':'البدء من ملف فارغ',
+    'welcome.notice':'لا يتم إرسال أي بيانات إلى خادم. إذا غيّرت الجهاز أو المتصفح، نزّل نسخة احتياطية (.json) من تبويب «مستنداتي» أولاً حتى تتمكن من استعادتها هنا.',
+    'profil.title':'ملفي الشخصي',
+    'profil.lede':'أجب عن بعض الأسئلة: ستوجّه تلقائيًا قائمة المستندات وتشخيص الأهلية والجهات المناسبة للتواصل.',
+    'profil.statut':'وضعية الإقامة',
+    'profil.hebergement':'وضعية السكن الحالية',
+    'profil.activite':'النشاط المهني',
+    'profil.famille':'الوضعية العائلية',
+    'profil.taille':'عدد الأشخاص في الأسرة',
+    'profil.zone':'المنطقة الجغرافية للسكن المطلوب',
+    'profil.cas':'حالات خاصة',
+    'profil.multi':'(اختيار متعدد)',
+    'profil.dateDepot':'تاريخ إيداع (أو آخر تجديد) طلب SNE',
+    'profil.optional':'(اختياري)',
+    'profil.dateDepotHint':'طلب السكن الاجتماعي صالح لمدة سنة واحدة ويجب تجديده كل سنة. أدخل هذا التاريخ لتصلك تذكرة هنا قبل انتهاء الصلاحية.',
+    'profil.privacyNotice':'هذه المعلومات لا تغادر جهازك أبدًا: تُستخدم فقط لحساب قائمتك وتشخيصك محليًا.',
+    'membres.title':'أفراد الأسرة',
+    'membres.lede':'أضف أفراد الأسرة لربط كل مستند ممسوح ضوئيًا بالشخص المعني.',
+    'membres.addName':'الاسم (مثال: «أنا»، «كريم»، «الطفل 1»)',
+    'membres.role':'الدور',
+    'membres.roleOpts':{principal:'مقدّم الطلب الرئيسي', codemandeur:'مقدّم طلب مشترك', enfant:'طفل معال', autre:'آخر'},
+    'membres.add':'إضافة',
+    'membres.remove':'إزالة',
+    'suivi.title':'متابعة طلبي',
+    'suivi.lede':'دوّن يدويًا وضعية طلبك — تبقى هذه المتابعة محلية ولا تتزامن مع نظام SNE.',
+    'suivi.numero':'رقم التسجيل الفريد',
+    'suivi.statut':'الوضع الحالي',
+    'suivi.statutOpts':{non_depose:'لم يُودَع بعد', en_attente:'قيد الانتظار', proposition:'تم استلام عرض', refuse:'مرفوض', attribue:'تم منح السكن'},
+    'suivi.journal':'سجل (خطوات، رسائل مستلمة\u2026)',
+    'suivi.journalAdd':'إضافة ملاحظة',
+    'suivi.journalPlaceholder':'مثال: اتصال بمركز CCAS، تم تجديد الطلب\u2026',
+    'checklist.title':'قائمتي',
+    'checklist.lede':'تُنشأ تلقائيًا حسب ملفك الشخصي.',
+    'checklist.notReady':'أكمل أولاً',
+    'checklist.notReadyLink':'ملفك الشخصي',
+    'checklist.notReadyEnd':'(الوضعية، السكن، النشاط، الوضعية العائلية) لإنشاء القائمة.',
+    'eligibilite.title':'أهليتي للسكن الاجتماعي',
+    'eligibilite.lede':'قارن دخلك المرجعي الضريبي (RFR لسنة N-2) بالسقوف التنظيمية لمعرفة فئات السكن الاجتماعي المتاحة لك.',
+    'eligibilite.rfr':'الدخل المرجعي الضريبي للأسرة (RFR، N-2)',
+    'eligibilite.rfrHint':'مجموع الدخل المرجعي الضريبي لجميع أفراد الأسرة، مذكور في الإشعار الضريبي.',
+    'eligibilite.zone':'المنطقة الجغرافية',
+    'eligibilite.taille':'حجم الأسرة',
+    'budget.title':'ميزانية سكني',
+    'budget.lede':'حسابات إرشادية لمساعدتك على تقييم مدى ملاءمة السكن لميزانيتك — ليست عتبات رسمية للمنح.',
+    'budget.revenu':'صافي الدخل الشهري للأسرة',
+    'budget.revenuHint':'إجمالي الرواتب والمعاشات والإعانات الصافية التي تتلقاها الأسرة كل شهر.',
+    'budget.loyer':'الإيجار المتوقع (باستثناء الأعباء)',
+    'budget.chargesLoc':'الأعباء الإيجارية الشهرية المقدرة',
+    'budget.credits':'أقساط القروض الجارية',
+    'budget.pensions':'النفقة المدفوعة',
+    'budget.autresCharges':'أعباء متكررة أخرى (شهريًا)',
+    'budget.tauxEffort':'معدل الجهد',
+    'budget.tauxEffortDef':'حصة الدخل المخصصة للإيجار والأعباء الإيجارية.',
+    'budget.resteAVivre':'الدخل المتبقي للأسرة',
+    'budget.resteAVivreParPersonne':'الدخل المتبقي لكل فرد',
+    'budget.resteAVivreDef':'ما يتبقى كل شهر بعد خصم الإيجار والأعباء الإيجارية والقروض والأعباء الأخرى من الدخل.',
+    'budget.needRevenu':'أدخل صافي الدخل الشهري لرؤية الحسابات.',
+    'budget.bandGood':'معدل جهد معتدل — يُعتبر عمومًا مستدامًا.',
+    'budget.bandWarn':'معدل جهد مرتفع — بعض الجهات المانحة تنتبه لهذا عند دراسة الملف.',
+    'budget.bandHigh':'معدل جهد مرتفع جدًا — قد يُصعّب هذا قبول الملف لدى بعض الجهات المانحة.',
+    'suivi.anciennete':'قِدَم الطلب',
+    'suivi.joursDepot':'يوم (أيام) منذ الإيداع',
+    'documents.title':'مستنداتي',
+    'documents.lede':'صوّر مستنداتك، اجمعها في ملف PDF واحد نظيف، وأنشئ شهادة إيواء عند الحاجة. كل شيء يبقى مخزَّنًا محليًا.',
+    'verification.title':'التحقق قبل الإرسال',
+    'verification.lede':'أكثر 6 أخطاء شيوعًا تؤدي إلى رفض أو تأخير الملف. راجعها قبل إيداع طلبك مباشرة.',
+    'verification.launch':'بدء التحقق',
+    'contacts.title':'من تتصل به',
+    'contacts.lede':'دليل إرشادي وليس دليلًا فوريًا: حدّد الجهات المناسبة حسب ملفك، ثم تحقق من بياناتها ومواعيدها عبر المصادر الرسمية أدناه.',
+    'glossary.title':'المصطلحات',
+    'glossary.lede':'مصطلحات السكن الاجتماعي، مشروحة ببساطة.',
+    'glossary.search':'ابحث عن مصطلح\u2026',
+    'chat.open':'سؤال؟',
+    'chat.title':'مساعد Clé de dossier',
+    'chat.disclaimer':'إجابات تُنشأ تلقائيًا: قد تحتوي على أخطاء. تحقق دائمًا من أي معلومة مهمة لدى جهة رسمية (بلدية، CCAS، مؤسسة سكن).',
+    'chat.placeholder':'اطرح سؤالك\u2026',
+    'chat.send':'إرسال',
+    'chat.thinking':'جارٍ التفكير\u2026',
+    'chat.stop':'إيقاف',
+    'chat.notAvailable':'المساعد غير متاح في هذا السياق حاليًا.',
+    'chat.notGranted':'لقد رفضتَ (أو عطّلت المؤسسة) الوصول إلى المساعد في هذه الصفحة.',
+    'chat.rateLimited':'تم إرسال عدد كبير من الأسئلة دفعة واحدة — أعد المحاولة بعد قليل.',
+    'chat.error':'حدث خطأ. أعد المحاولة أو أعد صياغة سؤالك.',
+    'chat.welcome':'مرحبًا! يمكنني الإجابة عن أسئلتك حول السكن الاجتماعي وحول استخدام هذا التطبيق. قد تحتوي إجاباتي على أخطاء: تحقق دائمًا من المعلومات المهمة.',
+  },
+  pt: {
+    'app.tagline':'Um assistente para preparar um pedido de habitação social.',
+    'sidebar.dataNotice':'<b>Os teus dados ficam aqui.</b><br>Nenhum documento ou resposta é enviado a um servidor: tudo fica guardado localmente, neste navegador, neste aparelho.',
+    'sidebar.home':'🏠 Ecrã inicial',
+    'sidebar.glossary':'📖 Glossário',
+    'sidebar.notifsOn':'🔔 Lembretes ativados',
+    'sidebar.notifsOff':'🔕 Ativar lembretes',
+    'sidebar.a11yOn':'🔎 Modo de acessibilidade ativado',
+    'sidebar.a11yOff':'🔎 Modo de acessibilidade',
+    'sidebar.lang':'Idioma',
+    'sidebar.langNote':'Os documentos gerados (atestado de alojamento, carta DALO) permanecem em francês: são documentos entregues à administração francesa.',
+    'step.profil.label':'O meu perfil', 'step.profil.sub':'Questionário de 2 min',
+    'step.checklist.label':'A minha checklist', 'step.checklist.sub':'Documentos a reunir',
+    'step.eligibilite.label':'A minha elegibilidade', 'step.eligibilite.sub':'PLAI / PLUS / PLS',
+    'step.documents.label':'Os meus documentos', 'step.documents.sub':'Scanner & cofre',
+    'step.verification.label':'Antes de enviar', 'step.verification.sub':'Verificação de erros',
+    'step.contacts.label':'Quem contactar', 'step.contacts.sub':'Balcões & entidades',
+    'welcome.title':'Clé de dossier',
+    'welcome.tagline':'Um assistente para preparar um pedido de habitação social. As tuas respostas e documentos ficam apenas neste aparelho.',
+    'welcome.continue':'Continuar o meu processo',
+    'welcome.new':'Começar um novo processo',
+    'welcome.import':'Restaurar uma cópia de segurança (.json)',
+    'welcome.reset':'Recomeçar do zero',
+    'welcome.notice':'Nenhum dado é enviado a um servidor. Se mudares de aparelho ou navegador, transfere primeiro uma cópia de segurança (.json) no separador "Os meus documentos".',
+    'profil.title':'O meu perfil',
+    'profil.lede':'Responde a estas perguntas: elas geram automaticamente a tua checklist de documentos, o diagnóstico de elegibilidade e os contactos certos.',
+    'profil.statut':'Estatuto de residência',
+    'profil.hebergement':'Situação de alojamento atual',
+    'profil.activite':'Atividade profissional',
+    'profil.famille':'Situação familiar',
+    'profil.taille':'Número de pessoas no agregado',
+    'profil.zone':'Zona geográfica da habitação pretendida',
+    'profil.cas':'Situações especiais',
+    'profil.multi':'(seleção múltipla)',
+    'profil.dateDepot':'Data de entrega (ou última renovação) do pedido SNE',
+    'profil.optional':'(opcional)',
+    'profil.dateDepotHint':'Um pedido de habitação social é válido por 1 ano e deve ser renovado todos os anos. Preenche esta data para receberes um lembrete aqui antes do prazo.',
+    'profil.privacyNotice':'Esta informação nunca sai do teu aparelho: é usada apenas para calcular a tua checklist e diagnóstico, localmente.',
+    'membres.title':'Membros do agregado',
+    'membres.lede':'Adiciona as pessoas do agregado para associar cada documento digitalizado à pessoa certa.',
+    'membres.addName':'Nome (ex. "Eu", "Karim", "Filho 1")',
+    'membres.role':'Função',
+    'membres.roleOpts':{principal:'Requerente principal', codemandeur:'Co-requerente', enfant:'Filho a cargo', autre:'Outro'},
+    'membres.add':'Adicionar',
+    'membres.remove':'Remover',
+    'suivi.title':'Acompanhamento do meu pedido',
+    'suivi.lede':'Anota manualmente o ponto de situação do teu pedido — este acompanhamento fica local, não sincroniza com o SNE.',
+    'suivi.numero':'Número único de registo',
+    'suivi.statut':'Estado atual',
+    'suivi.statutOpts':{non_depose:'Ainda não entregue', en_attente:'Em espera', proposition:'Proposta recebida', refuse:'Recusado', attribue:'Habitação atribuída'},
+    'suivi.journal':'Diário (diligências, cartas recebidas\u2026)',
+    'suivi.journalAdd':'Adicionar uma nota',
+    'suivi.journalPlaceholder':'Ex. Contactei o CCAS, renovei o pedido\u2026',
+    'checklist.title':'A minha checklist',
+    'checklist.lede':'Gerada a partir do teu perfil.',
+    'checklist.notReady':'Completa primeiro o teu',
+    'checklist.notReadyLink':'perfil',
+    'checklist.notReadyEnd':'(estatuto, alojamento, atividade, situação familiar) para gerar a checklist.',
+    'eligibilite.title':'A minha elegibilidade HLM',
+    'eligibilite.lede':'Compara o teu rendimento fiscal de referência (RFR, ano N-2) com os limites regulamentares para saber a que categorias de habitação social tens acesso.',
+    'eligibilite.rfr':'Rendimento fiscal de referência do agregado (RFR, N-2)',
+    'eligibilite.rfrHint':'Soma do RFR de todas as pessoas do agregado, indicado no aviso de tributação.',
+    'eligibilite.zone':'Zona geográfica',
+    'eligibilite.taille':'Tamanho do agregado',
+    'budget.title':'O meu orçamento de habitação',
+    'budget.lede':'Cálculos indicativos para te ajudar a avaliar se uma habitação cabe no teu orçamento — não são limites oficiais de atribuição.',
+    'budget.revenu':'Rendimento líquido mensal do agregado',
+    'budget.revenuHint':'Total de salários, pensões e subsídios líquidos recebidos pelo agregado a cada mês.',
+    'budget.loyer':'Renda prevista (sem encargos)',
+    'budget.chargesLoc':'Encargos locativos mensais estimados',
+    'budget.credits':'Prestações de crédito atuais',
+    'budget.pensions':'Pensão de alimentos paga',
+    'budget.autresCharges':'Outros encargos recorrentes (mensal)',
+    'budget.tauxEffort':'Taxa de esforço',
+    'budget.tauxEffortDef':'Parte do rendimento dedicada à renda e aos encargos locativos.',
+    'budget.resteAVivre':'Rendimento disponível do agregado',
+    'budget.resteAVivreParPersonne':'Rendimento disponível por pessoa',
+    'budget.resteAVivreDef':'O que sobra por mês depois de deduzidos do rendimento a renda, os encargos locativos, os créditos e outros encargos.',
+    'budget.needRevenu':'Indica o rendimento líquido mensal para veres os cálculos.',
+    'budget.bandGood':'Taxa de esforço moderada — geralmente considerada sustentável.',
+    'budget.bandWarn':'Taxa de esforço elevada — alguns senhorios sociais reparam nisto ao analisar o processo.',
+    'budget.bandHigh':'Taxa de esforço muito elevada — isto pode dificultar a aceitação do processo por alguns senhorios.',
+    'suivi.anciennete':'Antiguidade do pedido',
+    'suivi.joursDepot':'dia(s) desde a entrega',
+    'documents.title':'Os meus documentos',
+    'documents.lede':'Fotografa os teus comprovativos, junta-os num único PDF limpo, e gera um atestado de alojamento se precisares. Tudo fica guardado localmente.',
+    'verification.title':'Verificação antes de enviar',
+    'verification.lede':'Os 6 erros mais comuns que fazem um processo ser recusado ou atrasado. Revê-os mesmo antes de entregares o pedido.',
+    'verification.launch':'Iniciar a verificação',
+    'contacts.title':'Quem contactar',
+    'contacts.lede':'Um guia, não um diretório em tempo real: identifica os contactos certos para o teu perfil, depois confirma os dados e horários nas fontes oficiais abaixo.',
+    'glossary.title':'Glossário',
+    'glossary.lede':'Os termos da habitação social, explicados de forma simples.',
+    'glossary.search':'Procurar um termo\u2026',
+    'chat.open':'Uma pergunta?',
+    'chat.title':'Assistente Clé de dossier',
+    'chat.disclaimer':'Respostas geradas automaticamente: podem conter erros. Confirma sempre qualquer informação importante junto de uma entidade oficial (câmara, CCAS, senhorio).',
+    'chat.placeholder':'Faz a tua pergunta\u2026',
+    'chat.send':'Enviar',
+    'chat.thinking':'A pensar\u2026',
+    'chat.stop':'Parar',
+    'chat.notAvailable':'O assistente não está disponível neste contexto por agora.',
+    'chat.notGranted':'Recusaste (ou a tua organização desativou) o acesso ao assistente nesta página.',
+    'chat.rateLimited':'Muitas perguntas enviadas de uma vez — tenta novamente daqui a pouco.',
+    'chat.error':'Ocorreu um erro. Tenta novamente ou reformula a tua pergunta.',
+    'chat.welcome':'Olá! Posso responder às tuas perguntas sobre habitação social e sobre como usar esta aplicação. As minhas respostas podem conter erros: confirma sempre a informação importante.',
+  },
+};
+function t(key){
+  const dict = TRANSLATIONS[state.lang] || TRANSLATIONS.fr;
+  return (dict && dict[key]!=null) ? dict[key] : (TRANSLATIONS.fr[key] ?? key);
+}
+function applyDocDirection(){
+  document.documentElement.setAttribute('dir', state.lang==='ar' ? 'rtl' : 'ltr');
+  document.documentElement.setAttribute('lang', state.lang);
+}
+
+const GLOSSARY = {
+  fr: [
+    {term:'PLAI', def:'Prêt Locatif Aidé d\u2019Intégration : la catégorie de logement social la plus accessible financièrement, pour les ménages aux ressources les plus modestes.'},
+    {term:'PLUS', def:'Prêt Locatif à Usage Social : la catégorie de logement social « classique », la plus répandue.'},
+    {term:'PLS', def:'Prêt Locatif Social : logement social dit « intermédiaire », avec des plafonds de ressources plus élevés.'},
+    {term:'RFR', def:'Revenu Fiscal de Référence : le montant, indiqué sur l\u2019avis d\u2019imposition, qui sert à calculer l\u2019éligibilité aux plafonds de ressources.'},
+    {term:'DALO', def:'Droit Au Logement Opposable : un recours qui permet à une personne prioritaire de demander à être relogée en urgence par la préfecture.'},
+    {term:'DAHO', def:'Droit à l\u2019Hébergement Opposable : équivalent du DALO, mais pour obtenir une place d\u2019hébergement plutôt qu\u2019un logement.'},
+    {term:'SNE', def:'Système National d\u2019Enregistrement : le fichier national où toute demande de logement social doit être enregistrée.'},
+    {term:'Numéro unique', def:'Le numéro attribué à ta demande lors de son enregistrement au SNE. À conserver précieusement, il est demandé pour tout renouvellement ou recours.'},
+    {term:'Cotation', def:'Système de points utilisé par certaines collectivités (ex. Paris) pour classer les demandes selon des critères d\u2019urgence. Les règles varient fortement d\u2019un territoire à l\u2019autre.'},
+    {term:'Réservataire', def:'Un organisme (préfecture, mairie, Action Logement, bailleur) qui dispose d\u2019un « contingent » de logements sur lequel il peut proposer des candidats.'},
+    {term:'Contingent', def:'La part de logements d\u2019un immeuble social réservée à un réservataire donné (ex. contingent préfectoral, contingent Action Logement).'},
+    {term:'Avis d\u2019imposition', def:'Document délivré par les impôts après la déclaration de revenus, indiquant notamment le RFR.'},
+    {term:'CCAS', def:'Centre Communal d\u2019Action Sociale : le service social de la mairie, souvent un point d\u2019accueil et d\u2019accompagnement pour les démarches de logement.'},
+    {term:'Quotient familial (CAF)', def:'Indicateur calculé par la CAF selon les revenus et la composition familiale, utilisé pour certaines aides et attestations.'},
+  ],
+  en: [
+    {term:'PLAI', def:'"Prêt Locatif Aidé d\u2019Intégration": the most affordable social housing category, for households with the lowest incomes.'},
+    {term:'PLUS', def:'"Prêt Locatif à Usage Social": the standard, most common social housing category.'},
+    {term:'PLS', def:'"Prêt Locatif Social": so-called "intermediate" social housing, with higher income ceilings.'},
+    {term:'RFR', def:'Reference Tax Income: the figure shown on your tax notice, used to check eligibility against the income ceilings.'},
+    {term:'DALO', def:'Enforceable Right to Housing: a legal recourse letting a priority applicant request emergency rehousing via the local prefecture.'},
+    {term:'DAHO', def:'Enforceable Right to Emergency Accommodation: same idea as DALO, but for a shelter place rather than permanent housing.'},
+    {term:'SNE', def:'National Registration System: the national database where every social housing application must be registered.'},
+    {term:'Unique number', def:'The number assigned to your application when registered with the SNE. Keep it safe — it is required for renewals and any appeal.'},
+    {term:'"Cotation" (scoring)', def:'A points-based system used by some local authorities (e.g. Paris) to rank applications by urgency. Rules vary a lot between areas.'},
+    {term:'"Réservataire" (housing allocator)', def:'A body (prefecture, town hall, Action Logement, landlord) that holds a quota of units it can propose candidates for.'},
+    {term:'Quota ("contingent")', def:'The share of units in a social building reserved for a given allocator (e.g. prefecture quota, Action Logement quota).'},
+    {term:'Tax notice', def:'Document issued by the tax office after your tax return, showing your RFR among other figures.'},
+    {term:'CCAS', def:'Municipal social welfare centre: the town hall\u2019s social service, often a good first stop for housing support.'},
+    {term:'Family quotient (CAF)', def:'An indicator computed by the family benefits office (CAF) from income and household size, used for some benefits and certificates.'},
+  ],
+  ar: [
+    {term:'PLAI', def:'أكثر فئة سكن اجتماعي يمكن الوصول إليها ماليًا، مخصّصة للأسر ذات الدخل الأكثر تواضعًا.'},
+    {term:'PLUS', def:'فئة السكن الاجتماعي «الكلاسيكية»، الأكثر انتشارًا.'},
+    {term:'PLS', def:'سكن اجتماعي يُعرف بـ«المتوسط»، بسقوف دخل أعلى.'},
+    {term:'RFR', def:'الدخل المرجعي الضريبي: المبلغ المذكور في الإشعار الضريبي، يُستخدم لحساب الأهلية وفق سقوف الدخل.'},
+    {term:'DALO', def:'الحق في السكن القابل للتطبيق: طعن يسمح لشخص ذي أولوية بطلب إعادة إسكانه بشكل عاجل عبر المحافظة.'},
+    {term:'DAHO', def:'الحق في الإيواء القابل للتطبيق: مماثل لـDALO، لكن للحصول على مكان إيواء بدلاً من سكن دائم.'},
+    {term:'SNE', def:'نظام التسجيل الوطني: القاعدة الوطنية التي يجب تسجيل كل طلب سكن اجتماعي فيها.'},
+    {term:'الرقم الفريد', def:'الرقم المسنَد لطلبك عند تسجيله في SNE. احتفظ به جيدًا، فهو مطلوب لكل تجديد أو طعن.'},
+    {term:'نظام النقاط (Cotation)', def:'نظام نقاط تستخدمه بعض الجماعات المحلية (مثل باريس) لترتيب الطلبات حسب معايير الاستعجال. القواعد تختلف كثيرًا من منطقة لأخرى.'},
+    {term:'الجهة المانحة (Réservataire)', def:'جهة (محافظة، بلدية، Action Logement، مؤسسة سكن) تملك «حصة» من المساكن يمكنها اقتراح مرشحين لها.'},
+    {term:'الحصة (Contingent)', def:'نسبة المساكن في مبنى اجتماعي المخصصة لجهة مانحة معينة.'},
+    {term:'الإشعار الضريبي', def:'مستند تصدره إدارة الضرائب بعد التصريح بالدخل، يذكر من بين أمور أخرى الدخل المرجعي الضريبي (RFR).'},
+    {term:'CCAS', def:'مركز العمل الاجتماعي البلدي: المصلحة الاجتماعية التابعة للبلدية، غالبًا نقطة استقبال ومرافقة لإجراءات السكن.'},
+    {term:'المعامل العائلي (CAF)', def:'مؤشر تحسبه صندوق الإعانات العائلية حسب الدخل وتكوين الأسرة، يُستخدم لبعض المساعدات والشهادات.'},
+  ],
+  pt: [
+    {term:'PLAI', def:'A categoria de habitação social mais acessível financeiramente, para os agregados com rendimentos mais baixos.'},
+    {term:'PLUS', def:'A categoria "clássica" de habitação social, a mais comum.'},
+    {term:'PLS', def:'Habitação social dita "intermédia", com limites de rendimento mais elevados.'},
+    {term:'RFR', def:'Rendimento Fiscal de Referência: o valor indicado no aviso de tributação, usado para verificar a elegibilidade face aos limites de rendimento.'},
+    {term:'DALO', def:'Direito à Habitação Oponível: um recurso que permite a uma pessoa prioritária pedir realojamento urgente através da prefeitura.'},
+    {term:'DAHO', def:'Direito ao Alojamento Oponível: equivalente ao DALO, mas para obter uma vaga de alojamento em vez de habitação permanente.'},
+    {term:'SNE', def:'Sistema Nacional de Registo: a base de dados nacional onde todo o pedido de habitação social deve ser registado.'},
+    {term:'Número único', def:'O número atribuído ao teu pedido no registo no SNE. Guarda-o bem — é pedido em qualquer renovação ou recurso.'},
+    {term:'Cotação', def:'Sistema de pontos usado por algumas autarquias (ex. Paris) para ordenar os pedidos segundo critérios de urgência. As regras variam muito de território para território.'},
+    {term:'Entidade reservatária', def:'Uma entidade (prefeitura, câmara, Action Logement, senhorio social) que dispõe de uma quota de habitações para a qual pode propor candidatos.'},
+    {term:'Quota (contingent)', def:'A parte das habitações de um prédio social reservada a uma entidade reservatária específica.'},
+    {term:'Aviso de tributação', def:'Documento emitido pelas finanças após a declaração de rendimentos, indicando entre outros dados o RFR.'},
+    {term:'CCAS', def:'Centro Comunal de Ação Social: o serviço social da câmara municipal, muitas vezes um bom primeiro contacto para apoio à habitação.'},
+    {term:'Quociente familiar (CAF)', def:'Indicador calculado pela CAF a partir do rendimento e da composição do agregado, usado para alguns apoios e certificados.'},
+  ],
+};
+
+const CHOICES = {
+  fr: {
+    statut:[['francais','Française / Français'],['ue','Ressortissant·e UE / EEE'],['hors_ue_titre','Hors UE, titre de séjour valide'],['hors_ue_demande','Hors UE, demande de titre en cours']],
+    hebergement:[['locataire','Locataire'],['proprietaire','Propriétaire'],['heberge','Hébergé·e par un tiers'],['foyer','Foyer / structure collective'],['sans_domicile','Sans domicile stable']],
+    activite:[['salarie','Salarié·e'],['independant','Indépendant·e / auto-entrepreneur·e'],['sans_emploi','Sans emploi'],['retraite','Retraité·e'],['etudiant','Étudiant·e'],['inactif','Autre / sans activité']],
+    famille:[['seul','Personne seule'],['couple','En couple'],['famille_enfants','Famille avec enfant(s)'],['famille_monoparentale','Famille monoparentale'],['separe_recent','Séparation récente']],
+    zone:[['paris','Paris et communes limitrophes'],['idf','Île-de-France (hors Paris)'],['autres','Autres régions']],
+    cas:[['handicap','Handicap (moi ou un proche du foyer)'],['violences','Violences conjugales / intrafamiliales'],['ue_recent','UE/EEE installé·e depuis < 5 ans'],['sans_papiers_regularisation','Démarche de régularisation en cours']],
+  },
+  en: {
+    statut:[['francais','French national'],['ue','EU / EEA national'],['hors_ue_titre','Non-EU, valid residence permit'],['hors_ue_demande','Non-EU, permit application in progress']],
+    hebergement:[['locataire','Renting'],['proprietaire','Homeowner'],['heberge','Hosted by a third party'],['foyer','Hostel / group housing facility'],['sans_domicile','No stable housing']],
+    activite:[['salarie','Employee'],['independant','Self-employed / freelancer'],['sans_emploi','Unemployed'],['retraite','Retired'],['etudiant','Student'],['inactif','Other / no activity']],
+    famille:[['seul','Single person'],['couple','Couple'],['famille_enfants','Family with child(ren)'],['famille_monoparentale','Single-parent family'],['separe_recent','Recently separated']],
+    zone:[['paris','Paris and neighbouring towns'],['idf','Île-de-France (outside Paris)'],['autres','Other regions']],
+    cas:[['handicap','Disability (myself or a household member)'],['violences','Domestic / intimate partner violence'],['ue_recent','EU/EEA national, in France < 5 years'],['sans_papiers_regularisation','Regularisation process under way']],
+  },
+  ar: {
+    statut:[['francais','فرنسي(ة) الجنسية'],['ue','مواطن(ة) من الاتحاد الأوروبي / المنطقة الاقتصادية الأوروبية'],['hors_ue_titre','من خارج الاتحاد الأوروبي، بتصريح إقامة ساري'],['hors_ue_demande','من خارج الاتحاد الأوروبي، طلب تصريح قيد الدراسة']],
+    hebergement:[['locataire','مستأجر(ة)'],['proprietaire','مالك(ة)'],['heberge','مستضاف(ة) لدى شخص آخر'],['foyer','دار إيواء / سكن جماعي'],['sans_domicile','بدون سكن مستقر']],
+    activite:[['salarie','أجير(ة)'],['independant','عامل(ة) حر / صاحب مشروع فردي'],['sans_emploi','بدون عمل'],['retraite','متقاعد(ة)'],['etudiant','طالب(ة)'],['inactif','أخرى / بدون نشاط']],
+    famille:[['seul','شخص وحيد'],['couple','زوجان'],['famille_enfants','أسرة مع طفل (أطفال)'],['famille_monoparentale','أسرة أحادية الوالد'],['separe_recent','انفصال حديث']],
+    zone:[['paris','باريس والبلديات المجاورة'],['idf','إيل-دو-فرانس (خارج باريس)'],['autres','مناطق أخرى']],
+    cas:[['handicap','إعاقة (لي أو لأحد أفراد الأسرة)'],['violences','عنف زوجي / أسري'],['ue_recent','مواطن اتحاد أوروبي مقيم منذ أقل من 5 سنوات'],['sans_papiers_regularisation','إجراء تسوية وضعية جارٍ']],
+  },
+  pt: {
+    statut:[['francais','Nacionalidade francesa'],['ue','Nacional da UE / EEE'],['hors_ue_titre','Fora da UE, título de residência válido'],['hors_ue_demande','Fora da UE, pedido de título em curso']],
+    hebergement:[['locataire','Inquilino(a)'],['proprietaire','Proprietário(a)'],['heberge','Alojado(a) por terceiros'],['foyer','Lar / alojamento coletivo'],['sans_domicile','Sem alojamento estável']],
+    activite:[['salarie','Trabalhador(a) por conta de outrem'],['independant','Independente / trabalhador(a) por conta própria'],['sans_emploi','Desempregado(a)'],['retraite','Reformado(a)'],['etudiant','Estudante'],['inactif','Outro / sem atividade']],
+    famille:[['seul','Pessoa sozinha'],['couple','Casal'],['famille_enfants','Família com filho(s)'],['famille_monoparentale','Família monoparental'],['separe_recent','Separação recente']],
+    zone:[['paris','Paris e municípios limítrofes'],['idf','Île-de-France (fora de Paris)'],['autres','Outras regiões']],
+    cas:[['handicap','Deficiência (eu próprio ou um membro do agregado)'],['violences','Violência doméstica / conjugal'],['ue_recent','Nacional UE/EEE há menos de 5 anos'],['sans_papiers_regularisation','Processo de regularização em curso']],
+  },
+};
+
+/* -------------------------- NAV ---------------------------- */
+const STEPS = [
+  {id:'profil', num:1},
+  {id:'checklist', num:2},
+  {id:'eligibilite', num:3},
+  {id:'documents', num:4},
+  {id:'verification', num:5},
+  {id:'contacts', num:6},
+];
+function stepLabel(s){ return t('step.'+s.id+'.label'); }
+function stepSub(s){ return t('step.'+s.id+'.sub'); }
+
+function setTab(id){
+  state.activeTab = id;
+  persist();
+  render();
+  window.scrollTo({top:0, behavior:'instant'});
+}
+
+/* ==================== CHECKLIST ENGINE (ET/OU) ==================== */
+/* Chaque groupe: {id, title, type:'ET'|'OU', note?, options:[{id,name,desc}]} */
+function buildChecklist(p){
+  const groups = [];
+
+  groups.push({id:'identite', title:'Pièce d\u2019identité de chaque personne majeure du foyer', type:'ET',
+    options:[
+      {id:'cni', name:'Carte nationale d\u2019identité en cours de validité (recto ET verso)'},
+      {id:'passeport', name:'Passeport en cours de validité'},
+    ]});
+
+  if(p.statut==='hors_ue_titre' || p.statut==='hors_ue_demande'){
+    groups.push({id:'sejour', title:'Justificatif de séjour', type:'OU', note:'Un seul des deux suffit',
+      options:[
+        {id:'titre_sejour', name:'Titre de séjour en cours de validité (recto/verso)'},
+        {id:'recepisse', name:'Récépissé de renouvellement de titre de séjour'},
+      ]});
+  }
+
+  groups.push({id:'imposition', title:'Avis d\u2019imposition (ou de non-imposition) N-2', type:'ET',
+    note:'Une copie complète, toutes pages, pour chaque personne majeure du foyer',
+    options:[
+      {id:'avis_n2', name:'Avis d\u2019imposition sur le revenu de l\u2019année de référence (n-2)'},
+    ]});
+
+  // Hébergement
+  if(p.hebergement==='locataire'){
+    groups.push({id:'logement_actuel', title:'Justificatif du logement actuel', type:'OU',
+      options:[
+        {id:'quittance', name:'Dernière quittance de loyer'},
+        {id:'attest_bailleur', name:'Attestation du bailleur (à jour du paiement des loyers)'},
+      ]});
+  } else if(p.hebergement==='heberge'){
+    groups.push({id:'hebergement_tiers', title:'Hébergement chez un tiers — dossier complet de l\u2019hébergeant', type:'ET',
+      note:'Ces 3 pièces sont demandées ensemble',
+      options:[
+        {id:'attest_hebergement', name:'Attestation d\u2019hébergement sur l\u2019honneur, signée et datée de moins de 3 mois'},
+        {id:'cni_hebergeant', name:'Copie de la pièce d\u2019identité de l\u2019hébergeant'},
+        {id:'domicile_hebergeant', name:'Justificatif de domicile de l\u2019hébergeant (quittance, facture, taxe foncière)'},
+      ]});
+  } else if(p.hebergement==='proprietaire'){
+    groups.push({id:'propriete', title:'Justificatif de propriété du logement actuel', type:'OU',
+      options:[
+        {id:'taxe_fonciere', name:'Dernier avis de taxe foncière'},
+        {id:'titre_propriete', name:'Titre de propriété ou attestation notariée'},
+      ]});
+  } else if(p.hebergement==='sans_domicile'){
+    groups.push({id:'domiciliation', title:'Domiciliation administrative', type:'OU',
+      note:'Nécessaire en l\u2019absence d\u2019adresse personnelle stable',
+      options:[
+        {id:'attest_domiciliation', name:'Attestation de domiciliation délivrée par un CCAS'},
+        {id:'attest_asso', name:'Attestation de domiciliation par une association agréée'},
+      ]});
+  } else if(p.hebergement==='foyer'){
+    groups.push({id:'foyer_justif', title:'Justificatif de résidence en structure collective', type:'ET',
+      options:[
+        {id:'attest_structure', name:'Attestation de résidence délivrée par le foyer, CHRS ou la résidence sociale'},
+      ]});
+  }
+
+  // Activité / ressources
+  if(p.activite==='salarie'){
+    groups.push({id:'ressources_salarie', title:'Justificatifs de ressources — salarié·e', type:'ET',
+      options:[
+        {id:'bulletins', name:'3 derniers bulletins de salaire'},
+        {id:'contrat', name:'Contrat de travail'},
+      ]});
+    groups.push({id:'ressources_salarie_alt', title:'Alternative au contrat de travail', type:'OU',
+      note:'Si le contrat de travail n\u2019est pas disponible',
+      options:[{id:'attest_employeur', name:'Attestation de l\u2019employeur (poste, date d\u2019embauche, type de contrat)'}]});
+  } else if(p.activite==='independant'){
+    groups.push({id:'ressources_indep', title:'Justificatifs de ressources — indépendant·e / auto-entrepreneur·e', type:'OU',
+      options:[
+        {id:'bilan', name:'Dernier bilan comptable ou liasse fiscale'},
+        {id:'urssaf', name:'Attestation URSSAF de chiffre d\u2019affaires (auto-entrepreneur)'},
+      ]});
+  } else if(p.activite==='sans_emploi'){
+    groups.push({id:'ressources_chomage', title:'Justificatifs de ressources — sans emploi', type:'OU',
+      options:[
+        {id:'attest_pole_emploi', name:'Attestation France Travail (ex-Pôle emploi) de versement des allocations'},
+        {id:'notif_droits', name:'Notification de droits à l\u2019allocation chômage'},
+        {id:'attest_rsa', name:'Attestation de versement du RSA (CAF/MSA)'},
+      ]});
+  } else if(p.activite==='retraite'){
+    groups.push({id:'ressources_retraite', title:'Justificatifs de ressources — retraité·e', type:'ET',
+      options:[{id:'notif_pension', name:'Notification de pension de retraite'}]});
+  } else if(p.activite==='etudiant'){
+    groups.push({id:'ressources_etudiant', title:'Justificatifs — étudiant·e', type:'OU',
+      note:'Bourse, job étudiant, ou rattachement au foyer fiscal des parents',
+      options:[
+        {id:'notif_bourse', name:'Notification conditionnelle de bourse (CROUS)'},
+        {id:'certif_scolarite', name:'Certificat de scolarité de l\u2019année en cours'},
+      ]});
+  }
+
+  // Situation familiale
+  if(p.famille==='separe_recent'){
+    groups.push({id:'separation', title:'Justificatif de séparation ou de divorce', type:'OU',
+      options:[
+        {id:'jugement_divorce', name:'Jugement de divorce ou convention de séparation'},
+        {id:'attest_separation', name:'Attestation sur l\u2019honneur de séparation'},
+      ]});
+  }
+  if(p.famille==='famille_monoparentale' || p.famille==='famille_enfants' || p.famille==='separe_recent'){
+    groups.push({id:'enfants', title:'Justificatifs liés aux enfants à charge', type:'ET',
+      options:[
+        {id:'livret_famille', name:'Copie du livret de famille ou extrait d\u2019acte de naissance des enfants'},
+        {id:'caf', name:'Attestation de la CAF/MSA (quotient familial, allocations), de moins de 3 mois'},
+      ]});
+  }
+
+  // Cas particuliers
+  if(p.casParticuliers.includes('handicap')){
+    groups.push({id:'handicap', title:'Situation de handicap', type:'OU',
+      note:'Permet un surclassement dans une catégorie de ménage supérieure',
+      options:[
+        {id:'cmi', name:'Carte mobilité inclusion (CMI) mention invalidité'},
+        {id:'notif_mdph', name:'Notification de la MDPH'},
+      ]});
+  }
+  if(p.casParticuliers.includes('violences')){
+    groups.push({id:'violences', title:'Violences conjugales ou intrafamiliales', type:'OU',
+      note:'Peut permettre une procédure prioritaire (DALO) et une dispense de certains justificatifs de domicile',
+      options:[
+        {id:'ordonnance', name:'Ordonnance de protection délivrée par le juge aux affaires familiales'},
+        {id:'recepisse_plainte', name:'Récépissé de dépôt de plainte ou main courante'},
+      ]});
+  }
+  if(p.casParticuliers.includes('ue_recent')){
+    groups.push({id:'ue_recent', title:'Ressortissant·e UE/EEE installé·e depuis moins de 5 ans', type:'ET',
+      options:[
+        {id:'justif_ressources_ue', name:'Justificatif de ressources suffisantes et stables'},
+        {id:'justif_residence_ue', name:'Justificatif d\u2019entrée sur le territoire (durée de résidence)'},
+      ]});
+  }
+
+  return groups;
+}
+
+/* ==================== ÉLIGIBILITÉ PLAI/PLUS/PLS ==================== */
+/* Barèmes annuels 2025 (RFR N-2), source : arrêté du 23.12.2024 (JO 30.12.24),
+   repris notamment par les mémentos USH/OPHIS. À vérifier chaque année. */
+const BAREME_PLUS = {
+  paris: {1:26687,2:39885,3:52284,4:62424,5:74271,6:83575, plus:9313},
+  idf:   {1:26687,2:39885,3:47944,4:57429,5:67984,6:76504, plus:8524},
+  autres:{1:23201,2:30984,3:37259,4:44982,5:52915,6:59636, plus:6652},
+};
+const BAREME_PLAI = {
+  paris: {1:14683,2:23931,3:31369,4:34338,5:40847,6:45968, plus:5121},
+  idf:   {1:14683,2:23931,3:28767,4:31585,5:37393,6:42077, plus:4686},
+  autres:{1:12759,2:18591,3:22356,4:24875,5:29105,6:32800, plus:3657},
+};
+function plafondFor(bareme, zone, taille){
+  const t = Math.max(1, Math.round(taille));
+  if(t<=6) return bareme[zone][t];
+  return bareme[zone][6] + (t-6)*bareme[zone].plus;
+}
+function plafondPLS(zone, taille){ return Math.round(plafondFor(BAREME_PLUS, zone, taille) * 1.3); }
+
+function computeEligibilite(p){
+  const rfr = Number(p.rfr)||0;
+  const taille = Number(p.taille)||1;
+  const zone = p.zone;
+  const plai = plafondFor(BAREME_PLAI, zone, taille);
+  const plus = plafondFor(BAREME_PLUS, zone, taille);
+  const pls  = plafondPLS(zone, taille);
+  let diag, cls;
+  if(rfr<=plai){ diag='Éligible au logement très social (PLAI)'; cls='plai'; }
+  else if(rfr<=plus){ diag='Éligible au logement social classique (PLUS)'; cls='plus'; }
+  else if(rfr<=pls){ diag='Éligible au logement social intermédiaire (PLS)'; cls='pls'; }
+  else { diag='Au-delà des plafonds HLM (PLAI/PLUS/PLS) pour ce profil'; cls='none'; }
+  return {rfr, taille, zone, plai, plus, pls, diag, cls};
+}
+
+/* ==================== RÉSERVATAIRE / QUI CONTACTER ==================== */
+function computeContacts(p){
+  const list = [];
+  list.push({tag:'Étape obligatoire', title:'Enregistrement au Système National d\u2019Enregistrement (SNE)',
+    desc:'Toute demande de logement social doit être enregistrée en mairie, en préfecture, auprès d\u2019un bailleur social ou en ligne sur demande-logement-social.gouv.fr. Un numéro unique départemental (ou régional en Île-de-France) est délivré.'});
+
+  if(p.activite==='salarie'){
+    list.push({tag:'Réservataire possible', title:'Action Logement (si l\u2019employeur cotise à l\u2019effort de construction)',
+      desc:'Les salarié·e·s d\u2019entreprises du secteur privé non agricole de 50 salariés ou plus peuvent solliciter le contingent Action Logement, souvent avec des délais plus courts.'});
+  }
+  if(p.casParticuliers.includes('violences') || p.casParticuliers.includes('handicap') || p.hebergement==='sans_domicile'){
+    list.push({tag:'Procédure prioritaire', title:'Recours DALO en préfecture',
+      desc:'En cas de situation prioritaire (sans domicile, handicap avec logement inadapté, violences, délai anormalement long), un recours devant la commission de médiation (préfecture) peut accélérer l\u2019attribution.'});
+  }
+  list.push({tag:'Guichet local', title:'Mairie ou CCAS de la commune souhaitée',
+    desc:'Beaucoup de communes disposent d\u2019un contingent municipal. C\u2019est aussi un guichet d\u2019enregistrement et souvent d\u2019accompagnement social.'});
+  list.push({tag:'Guichet local', title:'Bailleur(s) social(aux) du secteur visé',
+    desc:'Chaque organisme HLM peut enregistrer directement une demande et gère son propre contingent propre en dehors des réservations préfecture/mairie/Action Logement.'});
+  if(p.hebergement==='foyer' || p.casParticuliers.includes('sans_papiers_regularisation')){
+    list.push({tag:'Accompagnement', title:'Travailleur·se social·e référent·e (CCAS, foyer, association)',
+      desc:'Un accompagnement social facilite souvent la constitution du dossier et l\u2019identification du bon contingent, en particulier pour les situations complexes.'});
+  }
+  return list;
+}
+function reservatairePrioritaireLabel(p){
+  if(p.casParticuliers.includes('violences') || p.casParticuliers.includes('handicap') || p.hebergement==='sans_domicile'){
+    return 'Préfecture / État — recours DALO possible (situation prioritaire)';
+  }
+  if(p.activite==='salarie'){
+    return 'Action Logement (salarié·e du secteur privé, sous réserve de cotisation de l\u2019employeur)';
+  }
+  return 'Aucun réservataire prioritaire identifié — passe par le contingent communal, le bailleur, ou la préfecture au titre du droit commun';
+}
+
+/* ==================== RENDER ==================== */
+function render(){
+  applyDocDirection();
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">🔑</div>
+        <div>
+          <div class="brand-name">Clé de dossier</div>
+          <div class="brand-sub">${esc(t('app.tagline'))}</div>
+        </div>
+      </div>
+      <nav class="steps">
+        ${STEPS.map(s=>`
+          <button class="step-btn ${state.activeTab===s.id?'active':''}" data-tab="${s.id}">
+            <span class="num">${s.num}</span>
+            <span><span class="label">${esc(stepLabel(s))}</span><span class="sub">${esc(stepSub(s))}</span></span>
+          </button>`).join('')}
+        <button class="step-btn ${state.activeTab==='glossaire'?'active':''}" data-tab="glossaire">
+          <span class="num">📖</span>
+          <span><span class="label">${esc(t('sidebar.glossary'))}</span></span>
+        </button>
+      </nav>
+      <div class="sidebar-toolbar">
+        <label style="font-size:11px; color:#98A0B4; margin-bottom:4px; display:block;">${esc(t('sidebar.lang'))}</label>
+        <select id="sel-lang" style="width:100%; padding:8px 8px; font-size:13px; background:rgba(255,255,255,.1); color:#EDEEF3; border:1px solid rgba(255,255,255,.25); border-radius:6px;">
+          ${LANGS.map(l=>`<option value="${l.code}" ${state.lang===l.code?'selected':''}>${l.label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="sidebar-foot">
+        <div class="foot-notice-text">${t('sidebar.dataNotice')}</div>
+        <button class="btn btn-ghost" id="btn-go-welcome" style="margin-top:10px; padding:6px 12px; font-size:11.8px; width:100%; justify-content:center;">${esc(t('sidebar.home'))}</button>
+        <button class="btn btn-ghost" id="btn-enable-notifs" style="margin-top:6px; padding:6px 12px; font-size:11.8px; width:100%; justify-content:center;">${state.notifsEnabled ? esc(t('sidebar.notifsOn')) : esc(t('sidebar.notifsOff'))}</button>
+        <button class="btn btn-ghost" id="btn-toggle-a11y" style="margin-top:6px; padding:6px 12px; font-size:11.8px; width:100%; justify-content:center;">${state.a11y ? esc(t('sidebar.a11yOn')) : esc(t('sidebar.a11yOff'))}</button>
+      </div>
+    </div>
+    <main id="main"></main>
+  `;
+  document.documentElement.classList.toggle('a11y-mode', !!state.a11y);
+  app.querySelectorAll('.step-btn').forEach(b=>b.addEventListener('click', ()=>setTab(b.dataset.tab)));
+  document.getElementById('btn-go-welcome').addEventListener('click', renderWelcome);
+  document.getElementById('sel-lang').addEventListener('change', e=>{
+    state.lang = e.target.value; persist(); render();
+  });
+  document.getElementById('btn-toggle-a11y').addEventListener('click', ()=>{
+    state.a11y = !state.a11y; persist(); render();
+  });
+  document.getElementById('btn-enable-notifs').addEventListener('click', async ()=>{
+    if(typeof Notification==='undefined'){ alert('Notifications not supported by this browser.'); return; }
+    const perm = await Notification.requestPermission();
+    state.notifsEnabled = perm==='granted';
+    persist(); render();
+    if(state.notifsEnabled) alert('OK — ' + t('sidebar.notifsOn'));
+  });
+  renderMain();
+}
+
+function renderMain(){
+  const main = document.getElementById('main');
+  const renderers = {
+    profil: renderProfil,
+    checklist: renderChecklist,
+    eligibilite: renderEligibilite,
+    documents: renderDocuments,
+    verification: renderVerification,
+    contacts: renderContacts,
+    glossaire: renderGlossaire,
+  };
+  main.innerHTML = '';
+  renderAlertBanner(main);
+  (renderers[state.activeTab]||renderProfil)(main);
+  renderStepNav(main);
+  maybeFireBrowserNotifications();
+}
+
+function renderStepNav(main){
+  const idx = STEPS.findIndex(s=>s.id===state.activeTab);
+  if(idx<0) return;
+  const prev = STEPS[idx-1], next = STEPS[idx+1];
+  const nav = document.createElement('div');
+  nav.className = 'step-nav';
+  nav.innerHTML = `
+    ${prev ? `<button class="btn btn-ghost" id="nav-prev">← ${esc(stepLabel(prev))}</button>` : `<span class="spacer"></span>`}
+    <span class="spacer"></span>
+    ${next ? `<button class="btn btn-primary" id="nav-next">${esc(stepLabel(next))} →</button>` : ''}
+  `;
+  main.appendChild(nav);
+  if(prev) nav.querySelector('#nav-prev').addEventListener('click', ()=>setTab(prev.id));
+  if(next) nav.querySelector('#nav-next').addEventListener('click', ()=>setTab(next.id));
+}
+
+/* ---------- GLOSSAIRE ---------- */
+function renderGlossaire(main){
+  const terms = GLOSSARY[state.lang] || GLOSSARY.fr;
+  main.innerHTML = `
+    <h1 class="view-title">${esc(t('glossary.title'))}</h1>
+    <p class="view-lede">${esc(t('glossary.lede'))}</p>
+    <input type="text" id="gloss-search" placeholder="${esc(t('glossary.search'))}" style="margin-bottom:16px;">
+    <div id="gloss-list"></div>
+  `;
+  const listEl = document.getElementById('gloss-list');
+  function draw(filter){
+    const f = (filter||'').toLowerCase();
+    const shown = terms.filter(x=>!f || x.term.toLowerCase().includes(f) || x.def.toLowerCase().includes(f));
+    listEl.innerHTML = shown.map(x=>`
+      <div class="card" style="margin-bottom:10px; padding:14px 18px;">
+        <h3 style="margin-bottom:4px;">${esc(x.term)}</h3>
+        <p style="margin-bottom:0;">${esc(x.def)}</p>
+      </div>
+    `).join('') || `<p class="hint">—</p>`;
+  }
+  draw('');
+  document.getElementById('gloss-search').addEventListener('input', e=>draw(e.target.value));
+}
+
+/* ---------- 1. PROFIL ---------- */
+function chip(container, groupKey, value, current, label){
+  const el = document.createElement('button');
+  el.type='button';
+  el.className = 'choice' + (current===value?' sel':'');
+  el.textContent = label;
+  el.addEventListener('click', ()=>{
+    state.profil[groupKey] = value;
+    persist(); renderMain();
+  });
+  container.appendChild(el);
+}
+function multiChip(container, value, arr, label){
+  const el = document.createElement('button');
+  el.type='button';
+  const on = arr.includes(value);
+  el.className = 'choice' + (on?' sel':'');
+  el.textContent = label;
+  el.addEventListener('click', ()=>{
+    const i = arr.indexOf(value);
+    if(i>-1) arr.splice(i,1); else arr.push(value);
+    persist(); renderMain();
+  });
+  container.appendChild(el);
+}
+
+function renderProfil(main){
+  const p = state.profil;
+  const c = CHOICES[state.lang] || CHOICES.fr;
+  main.innerHTML = `
+    <div class="eyebrow-row"><h1 class="view-title">${esc(t('profil.title'))}</h1></div>
+    <p class="view-lede">${esc(t('profil.lede'))}</p>
+
+    <div class="card">
+      <div class="field"><label>${esc(t('profil.statut'))}</label><div class="choices" id="c-statut"></div></div>
+      <div class="field"><label>${esc(t('profil.hebergement'))}</label><div class="choices" id="c-heberge"></div></div>
+      <div class="field"><label>${esc(t('profil.activite'))}</label><div class="choices" id="c-activite"></div></div>
+      <div class="field"><label>${esc(t('profil.famille'))}</label><div class="choices" id="c-famille"></div></div>
+      <div class="grid2">
+        <div class="field"><label>${esc(t('profil.taille'))}</label>
+          <input type="number" id="i-taille" min="1" max="12" value="${p.taille}">
+        </div>
+        <div class="field"><label>${esc(t('profil.zone'))}</label><div class="choices" id="c-zone"></div></div>
+      </div>
+      <div class="field"><label>${esc(t('profil.cas'))} <span class="hint">${esc(t('profil.multi'))}</span></label><div class="choices" id="c-cas"></div></div>
+      <div class="field">
+        <label>${esc(t('profil.dateDepot'))} <span class="hint">${esc(t('profil.optional'))}</span></label>
+        <input type="date" id="i-datedepot" value="${p.dateDepot||''}" style="max-width:220px;">
+        <div class="hint">${esc(t('profil.dateDepotHint'))}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>${esc(t('membres.title'))}</h3>
+      <p class="hint" style="margin-top:-6px;">${esc(t('membres.lede'))}</p>
+      <div id="membres-list"></div>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field"><label>${esc(t('membres.addName'))}</label><input type="text" id="i-membre-nom"></div>
+        <div class="field"><label>${esc(t('membres.role'))}</label>
+          <select id="i-membre-role">
+            <option value="codemandeur">${esc(t('membres.roleOpts').codemandeur)}</option>
+            <option value="enfant">${esc(t('membres.roleOpts').enfant)}</option>
+            <option value="autre">${esc(t('membres.roleOpts').autre)}</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-row"><button class="btn btn-ghost" id="btn-add-membre">${esc(t('membres.add'))}</button></div>
+    </div>
+
+    <div class="card">
+      <h3>${esc(t('suivi.title'))}</h3>
+      <p class="hint" style="margin-top:-6px;">${esc(t('suivi.lede'))}</p>
+      <div class="grid2">
+        <div class="field"><label>${esc(t('suivi.numero'))}</label><input type="text" id="i-numero-unique" value="${esc(state.suivi.numeroUnique||'')}"></div>
+        <div class="field"><label>${esc(t('suivi.statut'))}</label><div class="choices" id="c-suivi-statut"></div></div>
+      </div>
+      ${p.dateDepot ? `<div class="pill pill-ok" style="font-size:12px; padding:5px 12px; margin-bottom:10px;">📅 ${esc(t('suivi.anciennete'))} : ${-daysBetween(p.dateDepot)} ${esc(t('suivi.joursDepot'))}</div>` : ''}
+      <div class="field">
+        <label>${esc(t('suivi.journal'))}</label>
+        <div id="journal-list"></div>
+        <div class="grid2" style="margin-top:8px;">
+          <input type="text" id="i-journal-note" placeholder="${esc(t('suivi.journalPlaceholder'))}">
+          <button class="btn btn-ghost" id="btn-add-journal" style="justify-self:start;">${esc(t('suivi.journalAdd'))}</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="notice">${esc(t('profil.privacyNotice'))}</div>
+  `;
+
+  c.statut.forEach(([v,l])=>chip(document.getElementById('c-statut'), 'statut', v, p.statut, l));
+  c.hebergement.forEach(([v,l])=>chip(document.getElementById('c-heberge'), 'hebergement', v, p.hebergement, l));
+  c.activite.forEach(([v,l])=>chip(document.getElementById('c-activite'), 'activite', v, p.activite, l));
+  c.famille.forEach(([v,l])=>chip(document.getElementById('c-famille'), 'famille', v, p.famille, l));
+  c.zone.forEach(([v,l])=>chip(document.getElementById('c-zone'), 'zone', v, p.zone, l));
+  c.cas.forEach(([v,l])=>multiChip(document.getElementById('c-cas'), v, p.casParticuliers, l));
+
+  document.getElementById('i-taille').addEventListener('change', e=>{
+    p.taille = Math.max(1, Math.min(12, Number(e.target.value)||1));
+    persist();
+  });
+  document.getElementById('i-datedepot').addEventListener('change', e=>{
+    p.dateDepot = e.target.value; persist(); renderMain();
+  });
+
+  // --- membres du foyer
+  const membresList = document.getElementById('membres-list');
+  function drawMembres(){
+    membresList.innerHTML = state.membres.map(m=>`
+      <div class="doc-item" style="margin-bottom:6px;">
+        <div class="ph">👤</div>
+        <div class="meta">
+          <div class="nm">${esc(m.nom) || (m.role==='principal' ? t('membres.roleOpts').principal : '—')}</div>
+          <div class="mt">${esc(t('membres.roleOpts')[m.role] || m.role)}</div>
+        </div>
+        ${m.role!=='principal' ? `<button class="btn btn-danger" data-rm="${m.id}" style="padding:6px 10px; font-size:12px;">${esc(t('membres.remove'))}</button>` : ''}
+      </div>
+    `).join('');
+    membresList.querySelectorAll('[data-rm]').forEach(b=>b.addEventListener('click', ()=>{
+      state.membres = state.membres.filter(m=>m.id!==b.dataset.rm);
+      persist(); drawMembres();
+    }));
+  }
+  drawMembres();
+  document.getElementById('btn-add-membre').addEventListener('click', ()=>{
+    const nom = document.getElementById('i-membre-nom').value.trim();
+    const role = document.getElementById('i-membre-role').value;
+    if(!nom) return;
+    state.membres.push({id:uid(), nom, role});
+    persist(); drawMembres();
+    document.getElementById('i-membre-nom').value='';
+  });
+
+  // --- suivi de la demande
+  const statutOpts = Object.entries(t('suivi.statutOpts'));
+  statutOpts.forEach(([v,l])=>{
+    const el = document.createElement('button');
+    el.type='button';
+    el.className = 'choice' + (state.suivi.statut===v?' sel':'');
+    el.textContent = l;
+    el.addEventListener('click', ()=>{ state.suivi.statut = v; persist(); renderProfil(main); });
+    document.getElementById('c-suivi-statut').appendChild(el);
+  });
+  document.getElementById('i-numero-unique').addEventListener('change', e=>{
+    state.suivi.numeroUnique = e.target.value; persist();
+  });
+  const journalList = document.getElementById('journal-list');
+  function drawJournal(){
+    const entries = state.suivi.journal.slice().reverse();
+    journalList.innerHTML = entries.length ? entries.map(j=>`
+      <div class="doc-opt">
+        <span class="opt-txt"><span class="n">${new Date(j.date).toLocaleDateString('fr-FR')}</span><span class="d">${esc(j.texte)}</span></span>
+        <button class="btn btn-danger" data-jrm="${j.id}" style="padding:4px 9px; font-size:11px;">✕</button>
+      </div>
+    `).join('') : `<p class="hint">—</p>`;
+    journalList.querySelectorAll('[data-jrm]').forEach(b=>b.addEventListener('click', ()=>{
+      state.suivi.journal = state.suivi.journal.filter(j=>j.id!==b.dataset.jrm);
+      persist(); drawJournal();
+    }));
+  }
+  drawJournal();
+  document.getElementById('btn-add-journal').addEventListener('click', ()=>{
+    const inp = document.getElementById('i-journal-note');
+    const texte = inp.value.trim();
+    if(!texte) return;
+    state.suivi.journal.push({id:uid(), date:new Date().toISOString(), texte});
+    persist(); inp.value=''; drawJournal();
+  });
+}
+
+/* ---------- 2. CHECKLIST ---------- */
+function renderChecklist(main){
+  const p = state.profil;
+  const ready = p.statut && p.hebergement && p.activite && p.famille;
+  main.innerHTML = `<h1 class="view-title">Ma checklist</h1>
+    <p class="view-lede">Générée à partir de ton profil. Les blocs <span class="pill pill-et">ET</span> regroupent des pièces toutes obligatoires ; les blocs <span class="pill pill-ou">OU</span> proposent des alternatives — une seule pièce cochée dans le bloc suffit.</p>`;
+
+  if(!ready){
+    main.innerHTML += `<div class="notice">Complète d\u2019abord ton <a href="#" id="go-profil">profil</a> (statut, logement, activité, situation familiale) pour générer la checklist.</div>`;
+    main.querySelector('#go-profil').addEventListener('click', e=>{e.preventDefault(); setTab('profil');});
+    return;
+  }
+
+  const groups = buildChecklist(p);
+  let totalOpts=0, tickedCount=0, groupsDone=0;
+  groups.forEach(g=>{
+    const anyTicked = g.options.some(o=>state.checklistTicked[o.id]);
+    if(g.type==='ET'){
+      const allTicked = g.options.every(o=>state.checklistTicked[o.id]);
+      if(allTicked) groupsDone++;
+    } else if(anyTicked) groupsDone++;
+    g.options.forEach(o=>{ totalOpts++; if(state.checklistTicked[o.id]) tickedCount++; });
+  });
+  const pct = groups.length ? Math.round(groupsDone/groups.length*100) : 0;
+
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div class="progress-num">${groupsDone}/${groups.length} rubriques complètes</div>
+    </div>
+  `;
+  groups.forEach(g=>{
+    const gEl = document.createElement('div');
+    gEl.className = 'doc-group ' + (g.type==='ET'?'et':'ou');
+    gEl.innerHTML = `
+      <div class="doc-group-head">
+        <div class="doc-group-title">${esc(g.title)}</div>
+        <span class="pill ${g.type==='ET'?'pill-et':'pill-ou'}">${g.type}</span>
+      </div>
+      <div class="doc-opts">
+        ${g.note?`<div class="hint" style="margin-bottom:6px;">${esc(g.note)}</div>`:''}
+        ${g.options.map((o,i)=>`
+          ${g.type==='OU' && i>0 ? `<div class="or-sep">ou</div>`:''}
+          <label class="doc-opt">
+            <input type="checkbox" data-opt="${o.id}" ${state.checklistTicked[o.id]?'checked':''}>
+            <span class="opt-txt"><span class="n">${esc(o.name)}</span>${o.desc?`<span class="d">${esc(o.desc)}</span>`:''}</span>
+          </label>`).join('')}
+      </div>
+    `;
+    wrap.appendChild(gEl);
+  });
+  main.appendChild(wrap);
+  wrap.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      state.checklistTicked[cb.dataset.opt] = cb.checked;
+      persist(); renderChecklist(main);
+    });
+  });
+
+  const note = document.createElement('div');
+  note.className='notice';
+  note.innerHTML = '<b>À vérifier au cas par cas :</b> cette checklist suit les règles générales des dossiers de demande de logement social. Certains bailleurs ou certaines communes peuvent demander une pièce supplémentaire ou accepter une alternative non listée ici — vérifie toujours avec le guichet d\u2019enregistrement.';
+  main.appendChild(note);
+}
+
+/* ---------- 3. ÉLIGIBILITÉ ---------- */
+function renderEligibilite(main){
+  const p = state.profil;
+  main.innerHTML = `<h1 class="view-title">Mon éligibilité HLM</h1>
+    <p class="view-lede">Compare ton revenu fiscal de référence (RFR, année N-2) aux plafonds réglementaires pour savoir quelles catégories de logement social te sont accessibles.</p>
+    <div class="card">
+      <div class="grid2">
+        <div class="field"><label>Revenu fiscal de référence du foyer (RFR, N-2)</label>
+          <input type="number" id="i-rfr" min="0" step="1" placeholder="Ex. 24000" value="${p.rfr}">
+          <div class="hint">Somme des RFR de toutes les personnes du foyer, visible sur l\u2019avis d\u2019imposition.</div>
+        </div>
+        <div class="field"><label>Zone géographique</label><div class="choices" id="c-zone2"></div></div>
+      </div>
+      <div class="field"><label>Taille du foyer</label>
+        <input type="number" id="i-taille2" min="1" max="12" value="${p.taille}">
+      </div>
+    </div>
+    <div id="diag-zone"></div>
+    <div class="notice">Barèmes 2025 (RFR N-2 = revenus 2023), arrêté du 23 décembre 2024. Ces plafonds sont révisés chaque 1ᵉʳ janvier : vérifie le montant en vigueur au moment de ton dépôt. Le PLS est calculé en majorant le plafond PLUS de 30 %, conformément à la réglementation. Ceci est une estimation, pas une décision d\u2019attribution.</div>
+
+    <div class="card">
+      <h3>${esc(t('budget.title'))}</h3>
+      <p class="hint" style="margin-top:-6px;">${esc(t('budget.lede'))}</p>
+      <div class="grid2">
+        <div class="field"><label>${esc(t('budget.revenu'))}</label>
+          <input type="number" id="i-revenu" min="0" step="1" value="${p.revenuMensuelNet}">
+          <div class="hint">${esc(t('budget.revenuHint'))}</div>
+        </div>
+        <div class="field"><label>${esc(t('budget.loyer'))}</label>
+          <input type="number" id="i-loyer" min="0" step="1" value="${p.loyerEstime}">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>${esc(t('budget.chargesLoc'))}</label>
+          <input type="number" id="i-chargesloc" min="0" step="1" value="${p.chargesLocatives}">
+        </div>
+        <div class="field"><label>${esc(t('budget.credits'))}</label>
+          <input type="number" id="i-credits" min="0" step="1" value="${p.credits}">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>${esc(t('budget.pensions'))}</label>
+          <input type="number" id="i-pensions" min="0" step="1" value="${p.pensionsVersees}">
+        </div>
+        <div class="field"><label>${esc(t('budget.autresCharges'))}</label>
+          <input type="number" id="i-autrescharges" min="0" step="1" value="${p.autresCharges}">
+        </div>
+      </div>
+      <div id="budget-result"></div>
+    </div>
+  `;
+  const zones=[['paris','Paris et limitrophes'],['idf','Île-de-France (hors Paris)'],['autres','Autres régions']];
+  zones.forEach(([v,l])=>chip(document.getElementById('c-zone2'), 'zone', v, p.zone, l));
+
+  document.getElementById('i-rfr').addEventListener('input', e=>{ p.rfr = e.target.value; persist(); renderDiagZone(); });
+  document.getElementById('i-taille2').addEventListener('change', e=>{
+    p.taille = Math.max(1, Math.min(12, Number(e.target.value)||1)); persist(); renderMain();
+  });
+  function renderDiagZone(){
+    const target = document.getElementById('diag-zone');
+    if(!p.rfr){ target.innerHTML=''; return; }
+    const r = computeEligibilite(p);
+    target.innerHTML = `
+      <div class="diag ${r.cls}">
+        <h3>${esc(r.diag)}</h3>
+        <p>RFR déclaré : <b>${r.rfr.toLocaleString('fr-FR')} €</b> — foyer de ${r.taille} personne(s), zone « ${zones.find(z=>z[0]===r.zone)[1]} ».</p>
+        <table class="bareme">
+          <tr><th>Type</th><th>Plafond applicable</th></tr>
+          <tr class="${r.cls==='plai'?'hl':''}"><td>PLAI — logement très social</td><td>${r.plai.toLocaleString('fr-FR')} €</td></tr>
+          <tr class="${r.cls==='plus'?'hl':''}"><td>PLUS — logement social classique</td><td>${r.plus.toLocaleString('fr-FR')} €</td></tr>
+          <tr class="${r.cls==='pls'?'hl':''}"><td>PLS — logement social intermédiaire</td><td>${r.pls.toLocaleString('fr-FR')} €</td></tr>
+        </table>
+      </div>`;
+  }
+  renderDiagZone();
+
+  // --- budget : reste à vivre / taux d'effort
+  const budgetInputs = ['i-revenu','i-loyer','i-chargesloc','i-credits','i-pensions','i-autrescharges'];
+  const fieldMap = {'i-revenu':'revenuMensuelNet','i-loyer':'loyerEstime','i-chargesloc':'chargesLocatives','i-credits':'credits','i-pensions':'pensionsVersees','i-autrescharges':'autresCharges'};
+  budgetInputs.forEach(id=>{
+    document.getElementById(id).addEventListener('input', e=>{
+      p[fieldMap[id]] = e.target.value; persist(); renderBudget();
+    });
+  });
+  function renderBudget(){
+    const target = document.getElementById('budget-result');
+    const revenu = Number(p.revenuMensuelNet)||0;
+    if(!revenu){ target.innerHTML = `<div class="notice">${esc(t('budget.needRevenu'))}</div>`; return; }
+    const loyer = Number(p.loyerEstime)||0;
+    const chargesLoc = Number(p.chargesLocatives)||0;
+    const credits = Number(p.credits)||0;
+    const pensions = Number(p.pensionsVersees)||0;
+    const autres = Number(p.autresCharges)||0;
+    const tauxEffort = revenu>0 ? ((loyer+chargesLoc)/revenu*100) : 0;
+    const resteAVivre = revenu - loyer - chargesLoc - credits - pensions - autres;
+    const taille = Math.max(1, Number(p.taille)||1);
+    const resteParPersonne = resteAVivre / taille;
+    let band = 'plai', bandMsg = t('budget.bandGood');
+    if(tauxEffort>=33){ band='none'; bandMsg = t('budget.bandHigh'); }
+    else if(tauxEffort>=28){ band='pls'; bandMsg = t('budget.bandWarn'); }
+    target.innerHTML = `
+      <div class="diag ${band}" style="margin-top:14px;">
+        <h3>${esc(t('budget.tauxEffort'))} : ${tauxEffort.toFixed(1)} %</h3>
+        <p style="margin-bottom:4px;">${esc(t('budget.tauxEffortDef'))}<br>${esc(bandMsg)}</p>
+        <table class="bareme">
+          <tr><th>${esc(t('budget.resteAVivre'))}</th><td>${resteAVivre.toLocaleString('fr-FR')} €/mois</td></tr>
+          <tr><th>${esc(t('budget.resteAVivreParPersonne'))}</th><td>${resteParPersonne.toLocaleString('fr-FR', {maximumFractionDigits:0})} €/mois</td></tr>
+        </table>
+        <p class="hint" style="margin-top:8px; margin-bottom:0;">${esc(t('budget.resteAVivreDef'))}</p>
+      </div>`;
+  }
+  renderBudget();
+}
+
+/* ---------- 4. DOCUMENTS (scanner + coffre-fort + attestation) ---------- */
+let pendingPages = []; // dataURLs being assembled into one document
+let daloMotifs = []; // motifs sélectionnés pour le recours DALO (session)
+function renderDocuments(main){
+  main.innerHTML = `
+    <h1 class="view-title">Mes documents</h1>
+    <p class="view-lede">Photographie tes justificatifs, assemble-les en un seul PDF propre, et génère une attestation d\u2019hébergement si besoin. Tout reste stocké localement.</p>
+
+    <div class="card">
+      <h3>Scanner &amp; convertisseur PDF</h3>
+      <p class="hint" style="margin-top:-6px;">Ajoute une ou plusieurs photos (ex. les 2 pages d\u2019un avis d\u2019imposition) : elles seront assemblées en un seul fichier PDF.</p>
+      <input type="file" id="file-input" accept="image/*,application/pdf" capture="environment" multiple style="margin:8px 0;">
+      <div class="pages-strip" id="pages-strip"></div>
+      <div class="field" id="save-doc-field" style="display:none;">
+        <label>Nom du document</label>
+        <input type="text" id="i-docname" placeholder="Ex. Avis d\u2019imposition 2024">
+        <div class="grid2" style="margin-top:10px;">
+          <div>
+            <label style="font-weight:600; font-size:13.6px; display:block; margin-bottom:6px;">Ce document concerne</label>
+            <select id="i-docmembre">
+              ${state.membres.map(m=>`<option value="${m.id}">${esc(m.nom)||esc(t('membres.roleOpts').principal)}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label style="font-weight:600; font-size:13.6px; display:block; margin-bottom:6px;">Filigrane anti-fraude</label>
+            <label style="display:flex; align-items:center; gap:8px; font-weight:400; font-size:13px;">
+              <input type="checkbox" id="i-watermark" checked style="width:17px; height:17px;">
+              Ajouter un filigrane (recopie visible, décourage la réutilisation frauduleuse)
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-assemble" disabled>Assembler en PDF et enregistrer</button>
+        <button class="btn btn-ghost" id="btn-clear-pages" style="display:none;">Recommencer</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Coffre-fort documentaire (${state.documents.length})</h3>
+      <div class="doc-list" id="doc-list"></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="btn-export-zip" ${state.documents.length?'':'disabled'}>Exporter le dossier en ZIP</button>
+        <button class="btn btn-primary" id="btn-merge-pdf" ${state.documents.length?'':'disabled'}>📎 Dossier PDF complet (1 fichier)</button>
+        <button class="btn btn-ghost" id="btn-digiposte">Exporter vers Digiposte ↗</button>
+      </div>
+      <div id="digiposte-note"></div>
+    </div>
+
+    <div class="card">
+      <h3>Sauvegarde &amp; restauration</h3>
+      <p class="hint" style="margin-top:-6px;">Ton dossier reste local à cet appareil et ce navigateur : il ne se synchronise pas tout seul ailleurs. Télécharge une sauvegarde régulièrement, surtout avant de changer d\u2019appareil ou de navigateur.</p>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-backup">Télécharger une sauvegarde (.json)</button>
+        <button class="btn btn-ghost" id="btn-restore">Importer une sauvegarde (.json)</button>
+        <input type="file" id="restore-input" accept="application/json,.json" style="display:none;">
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Générateur d\u2019attestation d\u2019hébergement</h3>
+      <div class="grid2">
+        <div class="field"><label>Nom et prénom de l\u2019hébergeant·e</label><input type="text" id="a-hote"></div>
+        <div class="field"><label>Date et lieu de naissance</label><input type="text" id="a-hote-naissance" placeholder="Ex. 12/05/1978 à Bordeaux"></div>
+      </div>
+      <div class="field"><label>Adresse complète du logement</label><input type="text" id="a-adresse"></div>
+      <div class="grid2">
+        <div class="field"><label>Nom et prénom de la personne hébergée</label><input type="text" id="a-heberge"></div>
+        <div class="field"><label>Hébergé·e depuis le</label><input type="date" id="a-depuis"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Fait à</label><input type="text" id="a-faita"></div>
+        <div class="field"><label>Le</label><input type="date" id="a-lelela" value="${new Date().toISOString().slice(0,10)}"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ochre" id="btn-preview-attest">Générer l\u2019aperçu</button>
+      </div>
+      <div id="attest-preview"></div>
+    </div>
+
+    <div class="card">
+      <h3>Recours DALO (droit au logement opposable)</h3>
+      <p class="hint" style="margin-top:-6px;">À utiliser si le délai d\u2019attente est anormalement long ou dans une situation prioritaire. Ce générateur prépare un <b>courrier d\u2019accompagnement</b> résumant ta situation, à joindre au formulaire officiel — il ne remplace pas le Cerfa n°15036*03 lui-même.</p>
+      <div class="field"><label>Motif(s) de la saisine <span class="hint">(sélection multiple)</span></label><div class="choices" id="d-motifs"></div></div>
+      <div class="grid2">
+        <div class="field"><label>Nom et prénom du demandeur</label><input type="text" id="d-nom"></div>
+        <div class="field"><label>Adresse actuelle</label><input type="text" id="d-adresse"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Numéro unique d\u2019enregistrement (SNE)</label><input type="text" id="d-numero" placeholder="Si tu en as déjà un"></div>
+        <div class="field"><label>Date de dépôt de la demande de logement social</label><input type="date" id="d-datedepot" value="${state.profil.dateDepot||''}"></div>
+      </div>
+      <div class="field"><label>Précisions sur la situation</label><textarea id="d-detail" placeholder="Explique brièvement ta situation, les démarches déjà faites, etc."></textarea></div>
+      <div class="btn-row">
+        <button class="btn btn-ochre" id="btn-preview-dalo">Générer l\u2019aperçu</button>
+        <a class="btn btn-ghost" href="https://www.service-public.fr/particuliers/vosdroits/R14313" target="_blank" rel="noopener">Télécharger le Cerfa officiel (n°15036*03)</a>
+      </div>
+      <div id="dalo-preview"></div>
+    </div>
+  `;
+
+  // --- scanner logic
+  const strip = document.getElementById('pages-strip');
+  function redrawPages(){
+    strip.innerHTML = pendingPages.map((src,i)=>`
+      <div class="pg"><img src="${src}"><button data-i="${i}" title="Retirer">✕</button></div>
+    `).join('');
+    strip.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
+      pendingPages.splice(Number(b.dataset.i),1); redrawPages();
+    }));
+    const has = pendingPages.length>0;
+    document.getElementById('btn-assemble').disabled = !has;
+    document.getElementById('save-doc-field').style.display = has?'block':'none';
+    document.getElementById('btn-clear-pages').style.display = has?'inline-flex':'none';
+  }
+  document.getElementById('file-input').addEventListener('change', async (e)=>{
+    const files = Array.from(e.target.files||[]);
+    for(const f of files){
+      if(f.type==='application/pdf') continue; // les PDF existants sont ajoutés tels quels ci-dessous
+      const dataUrl = await resizeImage(f, 1500, 0.72);
+      pendingPages.push(dataUrl);
+    }
+    const pdfFiles = files.filter(f=>f.type==='application/pdf');
+    for(const f of pdfFiles){
+      const dataUrl = await fileToDataUrl(f);
+      state.documents.push({id:uid(), name:f.name.replace(/\.pdf$/i,''), category:'pdf-importé', pages:[], pdfData:dataUrl, addedAt:Date.now(), expiry:null, ocrText:''});
+    }
+    if(pdfFiles.length){ persist(); renderDocuments(main); return; }
+    redrawPages();
+    e.target.value = '';
+  });
+  document.getElementById('btn-clear-pages').addEventListener('click', ()=>{ pendingPages=[]; redrawPages(); });
+  document.getElementById('btn-assemble').addEventListener('click', async ()=>{
+    if(!pendingPages.length) return;
+    const name = document.getElementById('i-docname').value.trim() || ('Document ' + new Date().toLocaleDateString('fr-FR'));
+    const memberId = document.getElementById('i-docmembre')?.value || 'principal';
+    const withWatermark = document.getElementById('i-watermark')?.checked;
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({unit:'pt', format:'a4'});
+    const pageW=595.28, pageH=841.89;
+    for(let i=0;i<pendingPages.length;i++){
+      if(i>0) pdf.addPage();
+      const img = await loadImage(pendingPages[i]);
+      const ratio = Math.min(pageW/img.width, pageH/img.height);
+      const w=img.width*ratio, h=img.height*ratio;
+      pdf.addImage(img, 'JPEG', (pageW-w)/2, (pageH-h)/2, w, h);
+      if(withWatermark){
+        const label = watermarkLabel(name);
+        addWatermark(pdf, label, pageW, pageH);
+      }
+    }
+    const pdfDataUrl = pdf.output('datauristring');
+    state.documents.push({id:uid(), name, category:'scan', pages:pendingPages.slice(), pdfData:pdfDataUrl, addedAt:Date.now(), expiry:null, ocrText:'', memberId, watermarked:!!withWatermark});
+    pendingPages = [];
+    persist();
+    renderDocuments(main);
+  });
+
+  redrawPages();
+
+  // --- vault list
+  const list = document.getElementById('doc-list');
+  if(!state.documents.length){
+    list.innerHTML = `<p class="hint">Aucun document enregistré pour l\u2019instant.</p>`;
+  } else {
+    list.innerHTML = state.documents.slice().reverse().map(d=>`
+      <div class="doc-item-wrap" data-wrap="${d.id}">
+        <div class="doc-item">
+          ${d.pages && d.pages[0] ? `<img src="${d.pages[0]}">` : `<div class="ph">📄</div>`}
+          <div class="meta">
+            <div class="nm">${esc(d.name)}</div>
+            <div class="mt">${d.pages?.length? d.pages.length+' page(s) · ':''}ajouté le ${new Date(d.addedAt).toLocaleDateString('fr-FR')}${d.expiry ? ` · valide jusqu\u2019au ${new Date(d.expiry+'T00:00:00').toLocaleDateString('fr-FR')}` : ''}${d.memberId ? ` · ${esc((state.membres.find(m=>m.id===d.memberId)||{}).nom || t('membres.roleOpts').principal)}` : ''}${d.watermarked ? ' · 🔏 filigrané' : ''}</div>
+          </div>
+          <button class="btn btn-ghost" data-view="${d.id}" style="padding:6px 10px; font-size:12px;" ${d.pages&&d.pages.length?'':'disabled'}>👁 Voir</button>
+          <button class="btn btn-ghost" data-ocr="${d.id}" style="padding:6px 10px; font-size:12px;">🔍 OCR</button>
+          <button class="btn btn-ghost" data-dl="${d.id}" style="padding:6px 10px; font-size:12px;">Télécharger</button>
+          <button class="btn btn-danger" data-del="${d.id}" style="padding:6px 10px; font-size:12px;">Supprimer</button>
+        </div>
+        <div class="ocr-field-row" style="padding-left:2px;">
+          <label>Date de validité :</label>
+          <input type="date" data-expiry="${d.id}" value="${d.expiry||''}">
+          <span class="hint">optionnel — utilisé pour les rappels d\u2019échéance</span>
+        </div>
+        <div id="ocr-panel-${d.id}"></div>
+      </div>
+    `).join('');
+    list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', ()=>{
+      state.documents = state.documents.filter(d=>d.id!==b.dataset.del);
+      persist(); renderDocuments(main);
+    }));
+    list.querySelectorAll('[data-dl]').forEach(b=>b.addEventListener('click', async ()=>{
+      const d = state.documents.find(x=>x.id===b.dataset.dl);
+      if(!d?.pdfData) return;
+      await saveDataUrl(d.pdfData, sanitizeFilename(d.name)+'.pdf');
+    }));
+    list.querySelectorAll('[data-expiry]').forEach(inp=>inp.addEventListener('change', ()=>{
+      const d = state.documents.find(x=>x.id===inp.dataset.expiry);
+      if(d){ d.expiry = inp.value || null; persist(); }
+    }));
+    list.querySelectorAll('[data-ocr]').forEach(b=>b.addEventListener('click', ()=>runOcr(b.dataset.ocr, main)));
+    list.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click', ()=>{
+      const d = state.documents.find(x=>x.id===b.dataset.view);
+      if(d) openDocViewer(d);
+    }));
+  }
+  document.getElementById('btn-export-zip').addEventListener('click', exportZip);
+  document.getElementById('btn-merge-pdf').addEventListener('click', (e)=>mergeAllDocuments(e.target));
+
+  document.getElementById('btn-digiposte').addEventListener('click', ()=>{
+    const note = document.getElementById('digiposte-note');
+    note.innerHTML = `<div class="notice" style="margin-top:12px;"><b>Digiposte n\u2019accepte pas les fichiers .zip.</b> Télécharge chaque document un par un ci-dessus (bouton « Télécharger »), puis, une fois sur Digiposte, utilise « Ajouter un document » pour les déposer individuellement dans ton coffre-fort.</div>`;
+    window.open('https://www.digiposte.fr/connexion', '_blank', 'noopener');
+  });
+
+  document.getElementById('btn-backup').addEventListener('click', exportBackup);
+  document.getElementById('btn-restore').addEventListener('click', ()=>document.getElementById('restore-input').click());
+  document.getElementById('restore-input').addEventListener('change', (e)=>{
+    const f = e.target.files[0];
+    if(f) importBackupFile(f, ()=>{ renderDocuments(main); alert('Sauvegarde restaurée avec succès.'); });
+  });
+
+  // --- attestation
+  const MOTIFS_DALO = [
+    ['sans_domicile', 'Être dépourvu de logement (sans domicile / sans-abri)'],
+    ['hebergement_precaire', 'Être hébergé ou logé temporairement dans une structure d\u2019hébergement depuis plus de 6 mois'],
+    ['logement_indecent', 'Être logé dans un logement non décent, insalubre ou dangereux'],
+    ['surpeuplement', 'Être dans un logement en situation de surpeuplement manifeste'],
+    ['handicap_inadapte', 'Être en situation de handicap avec un logement inadapté'],
+    ['delai_anormal', 'Être reconnu prioritaire mais sans proposition dans un délai anormalement long'],
+    ['menace_expulsion', 'Être menacé d\u2019expulsion sans relogement'],
+  ];
+  const motifsWrap = document.getElementById('d-motifs');
+  MOTIFS_DALO.forEach(([v,l])=>multiChip(motifsWrap, v, daloMotifs, l));
+
+  document.getElementById('btn-preview-dalo').addEventListener('click', ()=>{
+    const v = id=>document.getElementById(id).value.trim();
+    const nom=v('d-nom'), adresse=v('d-adresse'), numero=v('d-numero'), datedepot=v('d-datedepot'), detail=v('d-detail');
+    const datedepotStr = datedepot ? new Date(datedepot).toLocaleDateString('fr-FR') : '';
+    const motifsLabels = daloMotifs.map(m=>MOTIFS_DALO.find(x=>x[0]===m)?.[1]).filter(Boolean);
+    const html = `
+      <div class="paper-preview" id="print-dalo">
+        <h4>Courrier d\u2019accompagnement — Recours DALO</h4>
+        <p>Objet : Saisine de la commission de médiation au titre du droit au logement opposable (article L. 441-2-3 du code de la construction et de l\u2019habitation)</p>
+        <p>Madame, Monsieur,</p>
+        <p>Je soussigné·e <b>${esc(nom)||'……………………'}</b>, domicilié·e au <b>${esc(adresse)||'……………………'}</b>,
+        ${numero?`titulaire du numéro unique d\u2019enregistrement <b>${esc(numero)}</b>, `:''}
+        ${datedepotStr?`ayant déposé ma demande de logement social le <b>${esc(datedepotStr)}</b>, `:''}
+        sollicite par la présente la saisine de la commission de médiation, me trouvant dans la ou les situations suivantes :</p>
+        <ul>${motifsLabels.length ? motifsLabels.map(m=>`<li>${esc(m)}</li>`).join('') : '<li>……………………</li>'}</ul>
+        ${detail?`<p><b>Précisions sur ma situation :</b><br>${esc(detail)}</p>`:''}
+        <p>Je joins à ce courrier le formulaire Cerfa n°15036*03 complété, ainsi que les pièces justificatives correspondant à ma situation.</p>
+        <p>Je vous prie d\u2019agréer, Madame, Monsieur, l\u2019expression de mes salutations distinguées.</p>
+        <div class="sign"><div>Fait à ……………, le ${new Date().toLocaleDateString('fr-FR')}</div><div>Signature :</div></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-print-dalo">Imprimer / Enregistrer en PDF</button>
+      </div>
+      <div class="notice" style="margin-top:12px;">Ce courrier accompagne le formulaire officiel, il ne le remplace pas. N\u2019oublie pas d\u2019y joindre l\u2019attestation d\u2019enregistrement de ta demande de logement social (numéro unique) : la commission exige une démarche préalable de demande de logement social.</div>
+    `;
+    document.getElementById('dalo-preview').innerHTML = html;
+    document.getElementById('btn-print-dalo').addEventListener('click', ()=>printOnly(document.getElementById('print-dalo')));
+  });
+
+  document.getElementById('btn-preview-attest').addEventListener('click', ()=>{
+    const v = id=>document.getElementById(id).value.trim();
+    const hote=v('a-hote'), naiss=v('a-hote-naissance'), adr=v('a-adresse'), heb=v('a-heberge'),
+          depuis=v('a-depuis'), faita=v('a-faita'), lelela=v('a-lelela');
+    const dateStr = lelela ? new Date(lelela).toLocaleDateString('fr-FR') : '';
+    const depuisStr = depuis ? new Date(depuis).toLocaleDateString('fr-FR') : '';
+    const html = `
+      <div class="paper-preview" id="print-attest">
+        <h4>Attestation d\u2019hébergement sur l\u2019honneur</h4>
+        <p>Je soussigné·e <b>${esc(hote)||'……………………'}</b>, né·e le ${esc(naiss)||'……………………'},</p>
+        <p>déclare sur l\u2019honneur héberger à mon domicile situé au :</p>
+        <p style="margin-left:20px;"><b>${esc(adr)||'……………………………………'}</b></p>
+        <p>la personne suivante : <b>${esc(heb)||'……………………'}</b>, depuis le ${depuisStr||'……………………'}.</p>
+        <p>Cette attestation est établie pour servir et valoir ce que de droit, notamment dans le cadre d\u2019une demande de logement social.</p>
+        <div class="sign">
+          <div>Fait à ${esc(faita)||'……………'}</div>
+          <div>Le ${dateStr||'……………'}</div>
+        </div>
+        <div class="sign"><div>Signature de l\u2019hébergeant·e :</div><div></div></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-print-attest">Imprimer / Enregistrer en PDF</button>
+        <button class="btn btn-ghost" id="btn-save-attest">Enregistrer dans le coffre-fort</button>
+      </div>
+    `;
+    document.getElementById('attest-preview').innerHTML = html;
+    document.getElementById('btn-print-attest').addEventListener('click', ()=>printOnly(document.getElementById('print-attest')));
+    document.getElementById('btn-save-attest').addEventListener('click', async ()=>{
+      const text = `ATTESTATION D'HÉBERGEMENT SUR L'HONNEUR\n\nJe soussigné(e) ${hote}, né(e) le ${naiss},\ndéclare sur l'honneur héberger à mon domicile situé au :\n${adr}\n\nla personne suivante : ${heb}, depuis le ${depuisStr}.\n\nCette attestation est établie pour servir et valoir ce que de droit.\n\nFait à ${faita}, le ${dateStr}\nSignature de l'hébergeant(e) :`;
+      state.attestations.push({id:uid(), text, addedAt:Date.now()});
+      persist();
+      if(downloadsCap){
+        try{ await downloadsCap.save({filename:'attestation-hebergement.txt', data:text}); }catch(e){}
+      }
+      alert('Attestation enregistrée. Pense aussi à l\u2019imprimer et la faire signer par l\u2019hébergeant·e.');
+    });
+  });
+}
+
+function watermarkLabel(docName){
+  const nomPrincipal = (state.membres.find(m=>m.role==='principal')||{}).nom;
+  const who = nomPrincipal || 'Clé de dossier';
+  const date = new Date().toLocaleDateString('fr-FR');
+  return `COPIE — ${who} — ${date} — usage demande logement social`;
+}
+function addWatermark(pdf, text, pageW, pageH){
+  pdf.saveGraphicsState();
+  try{ pdf.setGState(new pdf.GState({opacity:0.11})); }catch(e){}
+  pdf.setTextColor(180,71,46);
+  pdf.setFontSize(10);
+  const stepX = 230, stepY = 110;
+  for(let y=-40; y<pageH+80; y+=stepY){
+    for(let x=-60; x<pageW+120; x+=stepX){
+      pdf.text(text, x, y, {angle:35});
+    }
+  }
+  pdf.restoreGraphicsState();
+}
+
+function resizeImage(file, maxDim, quality){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let {width,height} = img;
+        if(width>maxDim || height>maxDim){
+          const r = Math.min(maxDim/width, maxDim/height);
+          width = Math.round(width*r); height = Math.round(height*r);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width=width; canvas.height=height;
+        canvas.getContext('2d').drawImage(img,0,0,width,height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+function fileToDataUrl(file){
+  return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
+}
+function loadImage(src){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; }); }
+function sanitizeFilename(s){ return (s||'document').replace(/[^a-zA-Z0-9_\-\u00C0-\u024F ]/g,'').trim().replace(/\s+/g,'-').slice(0,80) || 'document'; }
+
+async function saveDataUrl(dataUrl, filename){
+  const blob = await (await fetch(dataUrl)).blob();
+  if(downloadsCap){
+    try{ await downloadsCap.save({filename, data: blob}); return; }catch(e){ console.error(e); }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+}
+
+async function exportZip(){
+  if(!window.JSZip || !state.documents.length) return;
+  const zip = new JSZip();
+  for(const d of state.documents){
+    if(d.pdfData){
+      const blob = await (await fetch(d.pdfData)).blob();
+      zip.file(sanitizeFilename(d.name)+'.pdf', blob);
+    }
+  }
+  const blob = await zip.generateAsync({type:'blob'});
+  if(downloadsCap){
+    try{ await downloadsCap.save({filename:'mon-dossier-logement.zip', data: blob}); return; }catch(e){ console.error(e); }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'mon-dossier-logement.zip'; a.click();
+}
+
+async function mergeAllDocuments(btn){
+  if(!window.PDFLib){
+    alert('La fusion PDF n\u2019a pas pu se charger (bibliothèque indisponible). Réessaie plus tard, ou utilise l\u2019export ZIP à la place.');
+    return;
+  }
+  const docsWithPdf = state.documents.filter(d=>d.pdfData);
+  if(!docsWithPdf.length) return;
+  const originalLabel = btn.textContent;
+  btn.textContent = '⏳ Fusion en cours\u2026'; btn.disabled = true;
+  try{
+    const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+    const merged = await PDFDocument.create();
+    const font = await merged.embedFont(StandardFonts.Helvetica);
+    const fontBold = await merged.embedFont(StandardFonts.HelveticaBold);
+
+    // Page de sommaire
+    const cover = merged.addPage([595.28, 841.89]);
+    let y = 780;
+    cover.drawText('Dossier de demande de logement social', {x:50, y, size:16, font:fontBold, color:rgb(0.09,0.14,0.25)});
+    y -= 26;
+    const nomPrincipal = (state.membres.find(m=>m.role==='principal')||{}).nom;
+    cover.drawText(`Demandeur : ${nomPrincipal || '—'}   —   Généré le ${new Date().toLocaleDateString('fr-FR')}`, {x:50, y, size:10, font, color:rgb(0.35,0.35,0.35)});
+    y -= 34;
+    cover.drawText('Sommaire des pièces jointes :', {x:50, y, size:12, font:fontBold});
+    y -= 22;
+    docsWithPdf.forEach((d,i)=>{
+      if(y < 60){ return; } // simplifié : liste tronquée si trop longue plutôt que de planter
+      const membre = state.membres.find(m=>m.id===d.memberId);
+      const who = membre ? (membre.nom || 'demandeur principal') : '';
+      cover.drawText(`${i+1}. ${d.name}${who ? '  (' + who + ')' : ''}`, {x:56, y, size:10.5, font, color:rgb(0.15,0.15,0.15)});
+      y -= 18;
+    });
+    y -= 10;
+    if(y>40){
+      cover.drawText('Document généré automatiquement, à titre indicatif — vérifie chaque pièce avant envoi.', {x:50, y, size:8.5, font, color:rgb(0.5,0.5,0.5)});
+    }
+
+    // Pages de chaque document (fusion réelle des PDF existants, image ou import)
+    for(const d of docsWithPdf){
+      try{
+        const bytes = await (await fetch(d.pdfData)).arrayBuffer();
+        const srcDoc = await PDFDocument.load(bytes, {ignoreEncryption:true});
+        const copiedPages = await merged.copyPages(srcDoc, srcDoc.getPageIndices());
+        copiedPages.forEach(pg=>merged.addPage(pg));
+      }catch(err){
+        console.error('Impossible de fusionner', d.name, err);
+      }
+    }
+
+    const outBytes = await merged.save();
+    const blob = new Blob([outBytes], {type:'application/pdf'});
+    if(downloadsCap){
+      try{ await downloadsCap.save({filename:'dossier-complet-logement-social.pdf', data: blob}); return; }
+      catch(e){ console.error(e); }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'dossier-complet-logement-social.pdf'; a.click();
+  }catch(e){
+    console.error(e);
+    alert('La fusion a échoué. Essaie l\u2019export ZIP à la place, ou vérifie qu\u2019aucun document n\u2019est corrompu.');
+  }finally{
+    btn.textContent = originalLabel; btn.disabled = false;
+  }
+}
+
+function openDocViewer(d){
+  if(!d.pages || !d.pages.length) return;
+  let idx = 0;
+  const overlay = document.createElement('div');
+  overlay.className = 'viewer-overlay';
+  function draw(){
+    overlay.innerHTML = `
+      <div class="viewer-head">
+        <b>${esc(d.name)} — page ${idx+1}/${d.pages.length}</b>
+        <button id="viewer-close">✕ Fermer</button>
+      </div>
+      <div class="viewer-body"><img src="${d.pages[idx]}" alt="${esc(d.name)}"></div>
+      <div class="viewer-nav">
+        <button id="viewer-prev" ${idx===0?'disabled':''}>← Précédent</button>
+        <button id="viewer-next" ${idx===d.pages.length-1?'disabled':''}>Suivant →</button>
+      </div>
+    `;
+    overlay.querySelector('#viewer-close').addEventListener('click', ()=>overlay.remove());
+    overlay.querySelector('#viewer-prev').addEventListener('click', ()=>{ idx=Math.max(0,idx-1); draw(); });
+    overlay.querySelector('#viewer-next').addEventListener('click', ()=>{ idx=Math.min(d.pages.length-1,idx+1); draw(); });
+  }
+  draw();
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+/* ---------- OCR ---------- */
+async function runOcr(docId, main){
+  const d = state.documents.find(x=>x.id===docId);
+  if(!d) return;
+  const panel = document.getElementById('ocr-panel-'+docId);
+  if(!panel) return;
+  if(!d.pages || !d.pages.length){
+    panel.innerHTML = `<div class="notice" style="margin-top:10px;">L\u2019OCR n\u2019est disponible que pour les documents scannés depuis une photo (pas pour un PDF importé directement).</div>`;
+    return;
+  }
+  panel.innerHTML = `<div class="ocr-panel"><span class="spinner"></span>Lecture du texte en cours\u2026 (peut prendre quelques secondes, surtout la première fois)</div>`;
+  try{
+    let fullText = '';
+    for(let i=0;i<d.pages.length;i++){
+      const { data } = await Tesseract.recognize(d.pages[i], 'fra');
+      fullText += (i>0?'\n\n--- page '+(i+1)+' ---\n\n':'') + (data.text||'').trim();
+    }
+    d.ocrText = fullText;
+    persist();
+    renderOcrPanel(d, panel);
+  }catch(e){
+    console.error(e);
+    panel.innerHTML = `<div class="notice" style="margin-top:10px;">La lecture automatique a échoué. Réessaie avec une photo plus nette, ou saisis les informations manuellement.</div>`;
+  }
+}
+function renderOcrPanel(d, panel){
+  const dateMatch = d.ocrText.match(/\b([0-3]?\d)[\/.\-]([01]?\d)[\/.\-](20\d{2})\b/);
+  let detectedDate = '';
+  if(dateMatch){
+    detectedDate = `${dateMatch[3]}-${dateMatch[2].padStart(2,'0')}-${dateMatch[1].padStart(2,'0')}`;
+  }
+  const amountMatches = [...d.ocrText.matchAll(/\d{1,3}[\s.]\d{3}|\d{4,6}/g)]
+    .map(m=>m[0].replace(/[\s.]/g,''))
+    .filter(v=>Number(v)>=1000 && Number(v)<200000);
+  const suggestedAmount = amountMatches[0] || '';
+
+  panel.innerHTML = `
+    <div class="ocr-panel">
+      <label style="font-weight:600; font-size:12.6px;">Texte détecté (modifiable) :</label>
+      <textarea id="ocr-text-${d.id}">${esc(d.ocrText)}</textarea>
+      <div class="ocr-field-row">
+        <label>Date détectée :</label>
+        <input type="date" id="ocr-date-${d.id}" value="${detectedDate}">
+        <button class="btn btn-ghost" id="ocr-use-date-${d.id}" style="padding:5px 10px; font-size:11.8px;">Utiliser comme date de validité</button>
+      </div>
+      ${suggestedAmount ? `
+      <div class="ocr-field-row">
+        <label>Montant détecté :</label>
+        <input type="text" id="ocr-amount-${d.id}" value="${esc(suggestedAmount)}">
+        <button class="btn btn-ghost" id="ocr-use-amount-${d.id}" style="padding:5px 10px; font-size:11.8px;">Utiliser comme RFR (éligibilité)</button>
+      </div>` : ''}
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn btn-primary" id="ocr-save-${d.id}" style="padding:7px 12px; font-size:12px;">Enregistrer le texte modifié</button>
+      </div>
+      <div class="hint" style="margin-top:6px;">La lecture automatique peut contenir des erreurs (chiffres surtout) : vérifie toujours avant d\u2019utiliser ces valeurs.</div>
+    </div>
+  `;
+  document.getElementById('ocr-save-'+d.id).addEventListener('click', ()=>{
+    d.ocrText = document.getElementById('ocr-text-'+d.id).value;
+    persist();
+    alert('Texte enregistré.');
+  });
+  const dateBtn = document.getElementById('ocr-use-date-'+d.id);
+  if(dateBtn) dateBtn.addEventListener('click', ()=>{
+    const v = document.getElementById('ocr-date-'+d.id).value;
+    if(v){ d.expiry = v; persist(); renderMain(); }
+  });
+  const amtBtn = document.getElementById('ocr-use-amount-'+d.id);
+  if(amtBtn) amtBtn.addEventListener('click', ()=>{
+    const v = document.getElementById('ocr-amount-'+d.id).value;
+    if(v){ state.profil.rfr = v; persist(); alert('Montant utilisé comme RFR. Va dans l\u2019onglet Éligibilité pour voir le diagnostic.'); }
+  });
+}
+
+/* ---------- 5. VÉRIFICATION AVANT ENVOI ---------- */
+const PRE_SEND_CHECKS = [
+  {id:'cni_verso', q:'As-tu bien inclus le RECTO ET LE VERSO de ta carte d\u2019identité ?'},
+  {id:'avis_complet', q:'Ton avis d\u2019imposition est-il complet, avec toutes les pages (pas seulement la première) ?'},
+  {id:'caf_3mois', q:'L\u2019attestation CAF (ou l\u2019attestation d\u2019hébergement) a-t-elle moins de 3 mois ?'},
+  {id:'lisible', q:'Tous les documents sont-ils lisibles, entiers et non flous ?'},
+  {id:'nom_coherent', q:'Le nom sur chaque document correspond-il bien à celui du dossier (pas d\u2019erreur d\u2019orthographe, nom de naissance vs. nom d\u2019usage) ?'},
+  {id:'tout_le_monde', q:'Chaque personne majeure du foyer a-t-elle bien fourni identité + ressources ?'},
+];
+function renderVerification(main){
+  const p = state.profil;
+  const ready = p.statut && p.hebergement && p.activite && p.famille;
+  main.innerHTML = `
+    <h1 class="view-title">Vérification avant l\u2019envoi</h1>
+    <p class="view-lede">Les 6 erreurs les plus fréquentes qui font rejeter ou retarder un dossier. Passe-les en revue juste avant de déposer ta demande.</p>
+    <div class="card">
+      <button class="btn btn-primary" id="btn-open-check">Lancer la vérification</button>
+    </div>
+
+    <div class="card">
+      <h3>Prêt pour la commission (CALE) ?</h3>
+      <p class="hint" style="margin-top:-6px;">Les commissions d\u2019attribution rejettent le plus souvent un dossier pour une pièce <b>obligatoire (ET)</b> manquante. Voici où tu en es sur les rubriques indispensables.</p>
+      <div id="cale-status"></div>
+    </div>
+
+    <div class="card">
+      <h3>Fiche de synthèse complète</h3>
+      <p class="hint" style="margin-top:-6px;">Une page qui regroupe ton profil, ton diagnostic d\u2019éligibilité, ton budget, ton réservataire prioritaire et l\u2019état de ta checklist — utile pour toi, un travailleur social, ou en pièce jointe à un bailleur.</p>
+      <div class="btn-row">
+        <button class="btn btn-ochre" id="btn-gen-synth">Générer la fiche</button>
+        <button class="btn btn-primary" id="btn-mail-direct">📧 Envoyer par e-mail</button>
+      </div>
+      <div id="synth-preview"></div>
+    </div>
+  `;
+  document.getElementById('btn-open-check').addEventListener('click', openPreSendModal);
+  document.getElementById('btn-mail-direct').addEventListener('click', ()=>{
+    const data = computeSyntheseData(p);
+    emailSynthese(p, data.e, data.tauxEffort, data.resteAVivre);
+  });
+
+  // --- CALE readiness
+  const caleEl = document.getElementById('cale-status');
+  if(!ready){
+    caleEl.innerHTML = `<p class="hint">Complète d\u2019abord ton profil pour voir cet état.</p>`;
+  } else {
+    const groups = buildChecklist(p);
+    const etGroups = groups.filter(g=>g.type==='ET');
+    const etMissing = etGroups.filter(g=>!g.options.every(o=>state.checklistTicked[o.id]));
+    const ouGroups = groups.filter(g=>g.type==='OU');
+    const ouMissing = ouGroups.filter(g=>!g.options.some(o=>state.checklistTicked[o.id]));
+    const allGood = !etMissing.length && !ouMissing.length;
+    caleEl.innerHTML = `
+      <div class="diag ${allGood?'plai':'none'}">
+        <h3>${allGood ? '✓ Toutes les rubriques indispensables sont complètes' : `${etMissing.length + ouMissing.length} rubrique(s) encore incomplète(s)`}</h3>
+        ${!allGood ? `<ul style="margin:6px 0 0 18px; padding:0;">
+          ${etMissing.map(g=>`<li><b>${esc(g.title)}</b> <span class="pill pill-et">ET</span> — toutes les pièces sont requises</li>`).join('')}
+          ${ouMissing.map(g=>`<li><b>${esc(g.title)}</b> <span class="pill pill-ou">OU</span> — au moins une pièce requise</li>`).join('')}
+        </ul>` : `<p style="margin-bottom:0;">Ta checklist ne montre plus de rubrique obligatoire manquante. Vérifie tout de même la lisibilité et la fraîcheur de chaque pièce avant de déposer.</p>`}
+      </div>
+    `;
+  }
+
+  // --- fiche de synthèse
+  document.getElementById('btn-gen-synth').addEventListener('click', ()=>{
+    const target = document.getElementById('synth-preview');
+    if(!ready){
+      target.innerHTML = `<div class="notice">Complète d\u2019abord ton profil pour générer la fiche.</div>`;
+      return;
+    }
+    const {groups, groupsDone, e, revenu, loyer, tauxEffort, resteAVivre} = computeSyntheseData(p);
+    const nomPrincipal = (state.membres.find(m=>m.role==='principal')||{}).nom || '—';
+    const today = new Date().toLocaleDateString('fr-FR');
+
+    const html = `
+      <div class="paper-preview" id="print-synth" style="margin-top:14px;">
+        <h4>Fiche de synthèse — demande de logement social</h4>
+        <p><b>Demandeur principal :</b> ${esc(nomPrincipal)} &nbsp;|&nbsp; <b>Date :</b> ${today}<br>
+        <b>Foyer :</b> ${p.taille} personne(s) — ${state.membres.map(m=>esc(m.nom||labelFor(m.role))).join(', ')}</p>
+
+        <p><b>Profil :</b><br>
+        Statut : ${esc(labelFor(p.statut))} · Logement actuel : ${esc(labelFor(p.hebergement))} · Activité : ${esc(labelFor(p.activite))}<br>
+        Situation familiale : ${esc(labelFor(p.famille))} · Zone recherchée : ${esc(labelFor(p.zone))}
+        ${p.casParticuliers.length ? `<br>Cas particuliers : ${p.casParticuliers.map(labelFor).join(', ')}` : ''}</p>
+
+        <p><b>Éligibilité :</b><br>
+        ${e ? `RFR : ${e.rfr.toLocaleString('fr-FR')} € — ${esc(e.diag)}` : 'RFR non renseigné (voir onglet Éligibilité)'}</p>
+
+        <p><b>Budget :</b><br>
+        ${revenu ? `Revenu mensuel net : ${revenu.toLocaleString('fr-FR')} € · Loyer envisagé : ${loyer.toLocaleString('fr-FR')} €<br>
+        Taux d\u2019effort : ${tauxEffort.toFixed(1)} % · Reste à vivre : ${resteAVivre.toLocaleString('fr-FR')} €/mois (${Math.round(resteAVivre/Math.max(1,p.taille)).toLocaleString('fr-FR')} €/personne)`
+        : 'Non renseigné (voir onglet Éligibilité)'}</p>
+
+        <p><b>Réservataire prioritaire identifié :</b><br>${esc(reservatairePrioritaireLabel(p))}</p>
+
+        <p><b>Suivi de la demande :</b><br>
+        Numéro unique : ${esc(state.suivi.numeroUnique||'non renseigné')} · Statut : ${esc(t('suivi.statutOpts')[state.suivi.statut] || state.suivi.statut)}
+        ${p.dateDepot ? `<br>Déposée le ${new Date(p.dateDepot).toLocaleDateString('fr-FR')} (${-daysBetween(p.dateDepot)} jours)` : ''}</p>
+
+        <p><b>Checklist :</b> ${groupsDone.length}/${groups.length} rubriques complètes<br>
+        Pièces au coffre-fort : ${state.documents.length}</p>
+
+        <p class="hint" style="margin-top:14px;">Document généré automatiquement par l\u2019application, à titre indicatif. Il ne remplace aucune pièce officielle et ne garantit aucune attribution.</p>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-print-synth">Imprimer / Enregistrer en PDF</button>
+        <button class="btn btn-ghost" id="btn-mail-synth">📧 Envoyer par e-mail</button>
+      </div>
+    `;
+    target.innerHTML = html;
+    document.getElementById('btn-print-synth').addEventListener('click', ()=>printOnly(document.getElementById('print-synth')));
+    document.getElementById('btn-mail-synth').addEventListener('click', ()=>{
+      const d = computeSyntheseData(p);
+      emailSynthese(p, d.e, d.tauxEffort, d.resteAVivre);
+    });
+  });
+}
+function computeSyntheseData(p){
+  const groups = buildChecklist(p);
+  const groupsDone = groups.filter(g=> g.type==='ET' ? g.options.every(o=>state.checklistTicked[o.id]) : g.options.some(o=>state.checklistTicked[o.id]));
+  const e = p.rfr ? computeEligibilite(p) : null;
+  const revenu = Number(p.revenuMensuelNet)||0;
+  const loyer = Number(p.loyerEstime)||0;
+  const chargesLoc = Number(p.chargesLocatives)||0;
+  const credits = Number(p.credits)||0;
+  const pensions = Number(p.pensionsVersees)||0;
+  const autres = Number(p.autresCharges)||0;
+  const tauxEffort = revenu>0 ? ((loyer+chargesLoc)/revenu*100) : null;
+  const resteAVivre = revenu ? (revenu - loyer - chargesLoc - credits - pensions - autres) : null;
+  return {groups, groupsDone, e, revenu, loyer, chargesLoc, credits, pensions, autres, tauxEffort, resteAVivre};
+}
+function emailSynthese(p, e, tauxEffort, resteAVivre){
+  const lines = [
+    `Récapitulatif — demande de logement social`,
+    ``,
+    `Statut : ${labelFor(p.statut)}`,
+    `Logement actuel : ${labelFor(p.hebergement)}`,
+    `Activité : ${labelFor(p.activite)}`,
+    `Situation familiale : ${labelFor(p.famille)} — foyer de ${p.taille} personne(s)`,
+    `Zone recherchée : ${labelFor(p.zone)}`,
+    ``,
+    e ? `RFR : ${e.rfr.toLocaleString('fr-FR')} € — ${e.diag}` : `RFR non renseigné`,
+    tauxEffort!=null ? `Taux d\u2019effort : ${tauxEffort.toFixed(1)} % — Reste à vivre : ${Math.round(resteAVivre)} €/mois` : ``,
+    ``,
+    `Réservataire prioritaire : ${reservatairePrioritaireLabel(p)}`,
+    `Numéro unique : ${state.suivi.numeroUnique||'non renseigné'}`,
+    `Documents dans le coffre-fort : ${state.documents.length}`,
+    ``,
+    `⚠️ Les documents eux-mêmes ne sont pas joints à cet e-mail (une pièce jointe automatique n\u2019est pas possible depuis un navigateur). Télécharge-les depuis l\u2019onglet « Mes documents » (ZIP ou dossier PDF fusionné) et joins-les manuellement avant l\u2019envoi.`,
+  ].filter(Boolean).join('\n');
+  const subject = encodeURIComponent('Récapitulatif — demande de logement social');
+  const body = encodeURIComponent(lines);
+  window.location.href = `mailto:?subject=${subject}&body=${body}`;
+}
+function openPreSendModal(){
+  const overlay = document.createElement('div');
+  overlay.className='overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <h3>Contrôle avant dépôt</h3>
+      <p class="hint" style="margin-top:-6px;">Réponds honnêtement à chaque point.</p>
+      ${PRE_SEND_CHECKS.map(c=>`
+        <label class="check-row">
+          <input type="checkbox" data-c="${c.id}">
+          <span>${esc(c.q)}</span>
+        </label>`).join('')}
+      <div id="modal-result" style="margin-top:14px;"></div>
+      <div class="btn-row" style="margin-top:16px;">
+        <button class="btn btn-ghost" id="btn-close-modal">Fermer</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  const update = ()=>{
+    const boxes = overlay.querySelectorAll('input[type=checkbox]');
+    const checked = Array.from(boxes).filter(b=>b.checked).length;
+    const res = document.getElementById('modal-result');
+    if(checked===PRE_SEND_CHECKS.length){
+      res.innerHTML = `<div class="pill pill-ok" style="font-size:12.5px; padding:6px 12px;">✓ Tous les points sont vérifiés — ton dossier semble prêt</div>`;
+    } else if(checked>0){
+      res.innerHTML = `<div class="pill pill-warn" style="font-size:12.5px; padding:6px 12px;">${checked}/${PRE_SEND_CHECKS.length} points vérifiés — continue avant l\u2019envoi</div>`;
+    } else { res.innerHTML=''; }
+  };
+  overlay.querySelectorAll('input[type=checkbox]').forEach(b=>b.addEventListener('change', update));
+  overlay.querySelector('#btn-close-modal').addEventListener('click', ()=>overlay.remove());
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+}
+
+/* ---------- 6. CONTACTS ---------- */
+function renderContacts(main){
+  const p = state.profil;
+  const ready = p.statut && p.hebergement && p.activite;
+  main.innerHTML = `<h1 class="view-title">Qui contacter</h1>
+    <p class="view-lede">Un guide, pas un annuaire en temps réel : identifie les bons interlocuteurs selon ton profil, puis vérifie leurs coordonnées et horaires auprès des sources officielles ci-dessous.</p>`;
+
+  if(!ready){
+    main.innerHTML += `<div class="notice">Complète d\u2019abord ton <a href="#" id="go-profil2">profil</a> pour une recommandation personnalisée.</div>`;
+    main.querySelector('#go-profil2').addEventListener('click', e=>{e.preventDefault(); setTab('profil');});
+  } else {
+    const contacts = computeContacts(p);
+    const wrap = document.createElement('div');
+    contacts.forEach(c=>{
+      const el = document.createElement('div');
+      el.className='contact-card';
+      el.innerHTML = `<span class="tag">${esc(c.tag)}</span><h4>${esc(c.title)}</h4><p style="margin-bottom:0;">${esc(c.desc)}</p>`;
+      wrap.appendChild(el);
+    });
+    main.appendChild(wrap);
+  }
+
+  const links = document.createElement('div');
+  links.className='card';
+  links.innerHTML = `
+    <h3>Annuaires et démarches officiels</h3>
+    <p class="hint" style="margin-top:-6px;">Ce prototype ne peut pas afficher une carte en temps réel des guichets (cela demanderait une connexion à une base de données externe). Utilise ces liens officiels pour trouver et contacter le bon guichet :</p>
+    <div class="btn-row">
+      <a class="btn btn-ghost" href="https://www.demande-logement-social.gouv.fr" target="_blank" rel="noopener">Portail national (SNE)</a>
+      <a class="btn btn-ghost" href="https://www.service-public.fr/particuliers/vosdroits/F1301" target="_blank" rel="noopener">Service-public.fr — logement social</a>
+      <a class="btn btn-ghost" href="https://www.actionlogement.fr" target="_blank" rel="noopener">Action Logement</a>
+      <a class="btn btn-ghost" href="https://www.service-public.fr/particuliers/vosdroits/F1169" target="_blank" rel="noopener">Recours DALO</a>
+    </div>
+  `;
+  main.appendChild(links);
+
+  const cerfa = document.createElement('div');
+  cerfa.className='card';
+  cerfa.innerHTML = `
+    <h3>Formulaire Cerfa n°14069*05</h3>
+    <p>Pour rester fiable, cette application ne remplit pas automatiquement le formulaire officiel (le champ exact du PDF gouvernemental peut changer d\u2019une version à l\u2019autre). À la place, voici une fiche récapitulative à partir de ton profil, à recopier sur le formulaire officiel.</p>
+    <div class="btn-row">
+      <a class="btn btn-ghost" href="https://www.service-public.fr/particuliers/vosdroits/R20359" target="_blank" rel="noopener">Télécharger le Cerfa officiel</a>
+      <button class="btn btn-primary" id="btn-recap">Générer ma fiche récapitulative</button>
+    </div>
+    <div id="recap-area"></div>
+  `;
+  main.appendChild(cerfa);
+  document.getElementById('btn-recap').addEventListener('click', ()=>{
+    const el = document.getElementById('recap-area');
+    const e = computeEligibilite(p);
+    el.innerHTML = `
+      <div class="paper-preview" style="margin-top:14px;">
+        <h4>Fiche récapitulative — demande de logement social</h4>
+        <p><b>Statut de séjour :</b> ${esc(labelFor(p.statut))}<br>
+        <b>Situation de logement actuelle :</b> ${esc(labelFor(p.hebergement))}<br>
+        <b>Activité professionnelle :</b> ${esc(labelFor(p.activite))}<br>
+        <b>Situation familiale :</b> ${esc(labelFor(p.famille))}<br>
+        <b>Taille du foyer :</b> ${p.taille} personne(s)<br>
+        <b>Zone recherchée :</b> ${esc(labelFor(p.zone))}<br>
+        <b>RFR déclaré :</b> ${p.rfr ? Number(p.rfr).toLocaleString('fr-FR')+' €' : 'non renseigné'}<br>
+        <b>Diagnostic d\u2019éligibilité :</b> ${p.rfr ? esc(e.diag) : 'à calculer dans l\u2019onglet Éligibilité'}<br>
+        <b>Cas particuliers :</b> ${p.casParticuliers.length ? p.casParticuliers.map(labelFor).join(', ') : 'aucun'}</p>
+      </div>
+      <div class="btn-row"><button class="btn btn-ghost" id="btn-print-recap">Imprimer cette fiche</button></div>
+    `;
+    const recapEl = el.querySelector('.paper-preview');
+    recapEl.id='print-recap';
+    document.getElementById('btn-print-recap').addEventListener('click', ()=>printOnly(recapEl));
+  });
+}
+function labelFor(v){
+  const dict = {
+    francais:'Française / Français', ue:'Ressortissant·e UE/EEE', hors_ue_titre:'Hors UE, titre valide', hors_ue_demande:'Hors UE, demande en cours',
+    locataire:'Locataire', proprietaire:'Propriétaire', heberge:'Hébergé·e par un tiers', foyer:'Foyer / structure collective', sans_domicile:'Sans domicile stable',
+    salarie:'Salarié·e', independant:'Indépendant·e', sans_emploi:'Sans emploi', retraite:'Retraité·e', etudiant:'Étudiant·e', inactif:'Autre',
+    seul:'Personne seule', couple:'En couple', famille_enfants:'Famille avec enfant(s)', famille_monoparentale:'Famille monoparentale', separe_recent:'Séparation récente',
+    paris:'Paris et limitrophes', idf:'Île-de-France (hors Paris)', autres:'Autres régions',
+    handicap:'Handicap', violences:'Violences conjugales/intrafamiliales', ue_recent:'UE/EEE < 5 ans', sans_papiers_regularisation:'Régularisation en cours',
+  };
+  return dict[v] || v || '—';
+}
+
+boot();
+</script>
+</body>
+</html>
